@@ -41,8 +41,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			this.move = move;
 
 			//System.Threading.Thread.CurrentThread.CurrentCulture =
-			//System.Globalization.CultureInfo.InvariantCulture;
-
+			//	System.Globalization.CultureInfo.InvariantCulture;
 			//printInfo();
 
 			historyX[world.Tick] = self.X;
@@ -68,20 +67,27 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			if (victim != null)
 				TurnToMovingTank(victim, false);
 
-			Unit aimPrem = self.PremiumShellCount > 0 ? EmulateShot(true) : null;
-			Unit aimReg = EmulateShot(false);
+
+			int dummy, resTick;
+			Unit aimPrem = self.PremiumShellCount > 0 ? EmulateShot(true, out dummy) : null;
+			Unit aimReg = EmulateShot(false, out resTick);
 
 			if (aimPrem != null)
 				if (!(aimPrem is Tank) || IsDead((Tank)aimPrem))
 					aimPrem = null;
 			if (aimReg != null)
-				if (!(aimReg is Tank) || IsDead((Tank)aimReg))
+				if (!(aimReg is Tank) || IsDead((Tank)aimReg))	
 					aimReg = null;
 
 			if (aimPrem != null && ((Tank)aimPrem).HullDurability > 20)
 				move.FireType = FireType.Premium;
 			else if (aimReg != null)
-				move.FireType = FireType.Regular;
+			{
+				double angle = GetCollisionAngle((Tank)aimReg, resTick);
+				if(angle < Math.PI/4)
+				//if(angle > Math.PI/2 * 0.6)
+					move.FireType = FireType.Regular;
+			}
 
 			//if (/*world.Tick >= 1 && */aim != null && aim is Tank && !IsDead((Tank)aim))
 			//	move.FireType = FireType.PremiumPreferred;
@@ -93,6 +99,68 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			//SimulateStuck();
 
 			ManageStuck();
+		}
+
+		private double GetCollisionAngle(Tank tank, int resTick) //always regular bullet
+		{
+			double bulletSpeed = regularBulletStartSpeed;
+			double angle = self.Angle + self.TurretRelativeAngle;
+			double cosa = Math.Cos(angle);
+			double sina = Math.Sin(angle);
+			double bulletX = self.X + self.VirtualGunLength * cosa;
+			double bulletY = self.Y + self.VirtualGunLength * sina;
+			double dx = regularBulletStartSpeed * cosa;
+			double dy = regularBulletStartSpeed * sina;
+
+			for (int tick = 0; tick < resTick; tick++)
+			{
+				bulletX += dx;
+				bulletY += dy;
+				dx *= regularBulletFriction;
+				dy *= regularBulletFriction;
+				bulletSpeed *= regularBulletFriction;
+			}
+
+			double tx = tank.X+tank.SpeedX*resTick;
+			double ty = tank.Y+tank.SpeedY*resTick;
+			double beta = Math.Atan2(tank.Height / 2, tank.Width / 2);
+			double alpha = tank.Angle;
+			double D = Math.Sqrt(Util.Sqr(tank.Height/2)+Util.Sqr(tank.Width/2));
+			Point t = new Point(tx,ty);
+			Point me = new Point(self.X,self.Y);
+			Point bullet = new Point(bulletX,bulletY);
+
+			Point a = new Point(D * Math.Cos(alpha + beta), D * Math.Sin(alpha + beta));
+			Point b = new Point(D * Math.Cos(alpha - beta), D * Math.Sin(alpha - beta));
+			Point c = new Point(D * Math.Cos(alpha - Math.PI + beta), D * Math.Sin(alpha - Math.PI + beta));
+			Point d = new Point(D * Math.Cos(alpha + Math.PI - beta), D * Math.Sin(alpha + Math.PI - beta));
+
+			a = a + t;
+			b = b + t;
+			c = c + t;
+			d = d + t;
+
+			double va = Math.Atan2(me.y-bullet.y,me.x-bullet.x);
+
+			if (Point.Intersect(a, b, bullet, me))
+				return angleDiff(va, tank.Angle);
+			if (Point.Intersect(b, c, bullet, me))
+				return angleDiff(va,tank.Angle-Math.PI/2);
+			if (Point.Intersect(c, d, bullet, me))
+				return angleDiff(va, tank.Angle - Math.PI);
+			if (Point.Intersect(d, a, bullet, me))
+				return angleDiff(va, tank.Angle + Math.PI / 2);
+			//throw new Exception();
+			return inf;
+		}
+
+		double angleDiff(double a, double b)
+		{
+			while (a < b - Math.PI)
+				a += 2*Math.PI;
+			while (b < a - Math.PI)
+				b += 2*Math.PI;
+			return Math.Abs(a - b);
 		}
 
 		bool WillUsePremiumBullet(Tank tank)
@@ -204,7 +272,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 		{
 			foreach (var bullet in world.Shells)
 			{
-
+				//file.WriteLine(bullet.Id + " " + bullet.Type + " " + bullet.SpeedX + " " + bullet.SpeedY);
 			}
 		}
 
@@ -249,15 +317,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			}
 			if (ma > stuckDist)
 				return false;
-
-			/*if (self.X < world.Width / 2 && Math.Abs(self.GetAngleTo(self.X + 500, self.Y)) < maxAngle)
-				return false;
-			if (self.X > world.Width / 2 && Math.Abs(self.GetAngleTo(self.X - 500, self.Y)) < maxAngle)
-				return false;
-			if (self.Y < world.Height / 2 && Math.Abs(self.GetAngleTo(self.X, self.Y + 500)) < maxAngle)
-				return false;
-			if (self.Y > world.Height / 2 && Math.Abs(self.GetAngleTo(self.X, self.Y - 500)) < maxAngle)
-				return false;*/
+			
 			if (cornerX >= 0 && self.GetDistanceTo(cornerX, cornerY) <= self.Width)
 				return false;
 			return true;
@@ -361,7 +421,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			return null;
 		}
 
-		Unit EmulateShot(bool premium)
+		Unit EmulateShot(bool premium, out int resTick)
 		{
 			double bulletSpeed, friction;
 			if (premium)
@@ -390,7 +450,10 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			{
 				Unit unit = TestCollision(x, y, tick);
 				if (unit != null)
+				{
+					resTick = tick;
 					return unit;
+				}
 				x += dx;
 				y += dy;
 				dx *= friction;
@@ -400,6 +463,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 				if (sumDist > needDist)
 					break;
 			}
+			resTick = -1;
 			return null;
 		}
 
@@ -663,6 +727,55 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 	}
 }
 
-class Point
+struct Point
 {
+	public double x, y;
+	public Point(double x = 0, double y = 0)
+	{
+		this.x = x;
+		this.y = y;
+	}
+	static public Point operator - (Point a, Point b)
+	{
+		return new Point(a.x - b.x, a.y - b.y);
+	}
+	static public Point operator +(Point a, Point b)
+	{
+		return new Point(a.x + b.x, a.y + b.y);
+	}
+	static public double wp(Point a, Point b)
+	{
+		return a.x * b.y - a.y * b.x;
+	}
+	static public double wp(Point a, Point b, Point c)
+	{
+		return wp(b - a, c - a);
+	}
+	static public bool Intersect(Point a, Point b, Point c, Point d)
+	{
+		return Intersect(a.x, b.x, c.x, d.x) && Intersect(a.y, b.y, c.y, d.y) &&
+			wp(a, b, c) * wp(a, b, d) <= 0 && wp(c, d, b) * wp(c, d, a) <= 0;
+	}
+	static bool Intersect(double l1, double r1, double l2, double r2)
+	{
+		if (l1 > r1)
+			Util.Swap(ref l1, ref r1);
+		if (l2 > r2)
+			Util.Swap(ref l2, ref r2);
+		return Math.Max(l1, l2) <= Math.Min(r1, r2);
+	}
+}
+
+class Util
+{
+	static public void Swap<T>(ref T a, ref T b)
+	{
+		T tmp = a;
+		a = b;
+		b = tmp;
+	}
+	static public double Sqr(double a)
+	{
+		return a * a;
+	}	
 }
