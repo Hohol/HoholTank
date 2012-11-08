@@ -73,10 +73,10 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			Unit aimReg = EmulateShot(false, out resTick);
 
 			if (aimPrem != null)
-				if (!(aimPrem is Tank) || IsDead((Tank)aimPrem))
+				if (!(aimPrem is Tank) || IsDead((Tank)aimPrem) || victim != null && aimPrem.Id != victim.Id)
 					aimPrem = null;
 			if (aimReg != null)
-				if (!(aimReg is Tank) || IsDead((Tank)aimReg))	
+				if (!(aimReg is Tank) || IsDead((Tank)aimReg) || victim != null && aimReg.Id != victim.Id)	
 					aimReg = null;
 
 			if (aimPrem != null && ((Tank)aimPrem).HullDurability > 20)
