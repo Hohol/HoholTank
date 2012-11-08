@@ -22,6 +22,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 		const int stuckDetectTickCnt = 100;
 		const double stuckDist = 10;
 		const int stuckAvoidTime = 45;
+		const int runToCornerTime = 300;
 
 		double[] historyX = new double[10000];
 		double[] historyY = new double[10000];
@@ -52,7 +53,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			Tank victim = null;
 
 			cornerX = cornerY = -1;
-			if (bonus != null)
+			if (bonus != null && world.Tick > runToCornerTime)
 			{
 				MoveTo(bonus, forward);
 				victim = GetAlmostDead();
@@ -93,7 +94,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			//	move.FireType = FireType.PremiumPreferred;
 
 			bool med = bonus != null && bonus.Type != BonusType.AmmoCrate;
-			if (world.Tick > 300 && victim != null && !HaveTimeToTurn(victim) && (self.CrewHealth > 40 && self.HullDurability > 40 || !med))
+			if (world.Tick > runToCornerTime && victim != null && !HaveTimeToTurn(victim) && (self.CrewHealth > 40 && self.HullDurability > 40 || !med))
 				TurnToMovingTank(victim, true);
 
 			//SimulateStuck();
