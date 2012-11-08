@@ -17,6 +17,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 		const double premiumBulletFriction = 0.99;
 		const double backwardPowerQuotient = 0.75;
 		const double premiumShotDistance = 850;
+		const int firstShootTick = 5;
 		readonly double diagonalLen = Math.Sqrt(1280 * 1280 + 800 * 800);
 
 		const int stuckDetectTickCnt = 100;
@@ -53,7 +54,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			Tank victim = null;
 
 			cornerX = cornerY = -1;
-			if (bonus != null && world.Tick > runToCornerTime)
+			if (bonus != null && (world.Tick > runToCornerTime || bonus.Type == BonusType.AmmoCrate))
 			{
 				MoveTo(bonus, forward);
 				victim = GetAlmostDead();
@@ -89,10 +90,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 				//if(angle > Math.PI/2 * 0.6)
 					move.FireType = FireType.Regular;
 			}
-
-			//if (/*world.Tick >= 1 && */aim != null && aim is Tank && !IsDead((Tank)aim))
-			//	move.FireType = FireType.PremiumPreferred;
-
+						
 			bool med = bonus != null && bonus.Type != BonusType.AmmoCrate;
 			if (world.Tick > runToCornerTime && victim != null && !HaveTimeToTurn(victim) && (self.CrewHealth > 40 && self.HullDurability > 40 || !med))
 				TurnToMovingTank(victim, true);
