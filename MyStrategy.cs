@@ -11,11 +11,13 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 		const int repairVal = 50;
 		const double regularBulletStartSpeed = 16.500438538620;
 		const double premiumBulletStartSpeed = 13.068000645325;
-		const double maxAngle = Math.PI / 6;
+		const double maxAngle = Math.PI / 12;
 		const double maxAngleForBackwards = Math.PI / 20;
 		const double regularBulletFriction = 0.995;
 		const double premiumBulletFriction = 0.99;
 		const double backwardPowerQuotient = 0.75;
+		const double premiumShotDistance = 850;
+		readonly double diagonalLen = Math.Sqrt(1280 * 1280 + 800 * 800);
 
 		const int stuckDetectTickCnt = 100;
 		const double stuckDist = 10;
@@ -47,7 +49,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			historyY[world.Tick] = self.Y;
 
 			bool forward;
-			Bonus bonus = GetBonus(out forward);			
+			Bonus bonus = GetBonus(out forward);
 			Tank victim = null;
 
 			cornerX = cornerY = -1;
@@ -61,16 +63,18 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			else
 			{
 				MoveBackwards(out cornerX, out cornerY);
-				victim = GetNearest(cornerX,cornerY);
+				victim = GetNearest(cornerX, cornerY);
 			}
-						
 			if (victim != null)
-			{
 				TurnToMovingTank(victim, false);
-				Unit aim = EmulateShot();
-				if (world.Tick >= 1 && aim != null && aim is Tank && !IsDead((Tank)aim))
-					move.FireType = FireType.PremiumPreferred;
-			}
+
+			Unit aim = null;
+			if(self.PremiumShellCount > 0)
+				aim = EmulateShot(true);
+			if (aim == null)
+				aim = EmulateShot(false);
+			if (world.Tick >= 1 && aim != null && aim is Tank && !IsDead((Tank)aim))
+				move.FireType = FireType.PremiumPreferred;
 
 			bool med = bonus != null && bonus.Type != BonusType.AmmoCrate;
 			if (world.Tick > 300 && victim != null && !HaveTimeToTurn(victim) && (self.CrewHealth > 35 && self.HullDurability > 35 || !med))
@@ -81,6 +85,11 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			ManageStuck();
 		}
 
+		bool WillUsePremiumBullet(Tank tank)
+		{
+			return self.PremiumShellCount > 0 && self.GetDistanceTo(tank) <= premiumShotDistance;
+		}
+
 		Tank GetNearest(double x, double y)
 		{
 			Tank res = null;
@@ -89,7 +98,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			{
 				if (tank.Id == self.Id || IsDead(tank))
 					continue;
-				double dist = tank.GetDistanceTo(x,y);
+				double dist = tank.GetDistanceTo(x, y);
 				if (dist < mi)
 				{
 					mi = dist;
@@ -101,12 +110,12 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 
 		bool HaveTimeToTurn(Unit unit)
 		{
-			return self.RemainingReloadingTime >= TimeToTurn(unit)-5;
+			return self.RemainingReloadingTime >= TimeToTurn(unit) - 5;
 		}
 
 		void TurnToMovingTank(Tank tank, bool mustRotateTrucks)
 		{
-			double t = self.GetDistanceTo(tank) / GetBulletSpeed();
+			double t = self.GetDistanceTo(tank) / (WillUsePremiumBullet(tank) ? premiumBulletStartSpeed : regularBulletStartSpeed);
 			double victimX = tank.X + tank.SpeedX * t;
 			double victimY = tank.Y + tank.SpeedY * t;
 
@@ -138,7 +147,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 				return true;
 			if (tank.CrewHealth <= damage)
 				return self.PremiumShellCount > 0 || /*Math.Abs(tank.GetAngleTo(self)) > Math.PI / 2 ||*/
-					self.GetDistanceTo(tank) < world.Height/2;
+					self.GetDistanceTo(tank) < world.Height / 2;
 			return false;
 		}
 
@@ -244,14 +253,6 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			return true;
 		}
 
-		double GetBulletSpeed()
-		{
-			if (self.PremiumShellCount > 0)
-				return premiumBulletStartSpeed;
-			else
-				return regularBulletStartSpeed;
-		}
-
 		void MoveBackwards(out double resX, out double resY)
 		{
 			double x, y;
@@ -267,7 +268,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			resY = y;
 
 			MoveTo(x, y, false);
-			
+
 			/*double x, y;
 			if (self.X < world.Width / 2)
 				x = world.Width;
@@ -319,10 +320,10 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 				if (unit is Tank && !IsDead((Tank)unit))
 				{
 					double k, b;
-					if (self.PremiumShellCount > 0)
-						GetKB(self.VirtualGunLength, 0.9, world.Width, 0.1, out k, out b);
-					else
-						GetKB(self.VirtualGunLength, 1, world.Width, 0.2, out k, out b);
+					//if (self.PremiumShellCount > 0)
+					//	GetKB(self.VirtualGunLength, 0.9, world.Width, 0.1, out k, out b);
+					//else
+					GetKB(self.VirtualGunLength, 1, world.Width, 0.2, out k, out b);
 					precision = self.GetDistanceTo(ax, ay) * k + b;
 				}
 				else
@@ -350,10 +351,10 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			return null;
 		}
 
-		Unit EmulateShot()
+		Unit EmulateShot(bool premium)
 		{
 			double bulletSpeed, friction;
-			if (self.PremiumShellCount > 0)
+			if (premium)
 			{
 				bulletSpeed = premiumBulletStartSpeed;
 				friction = premiumBulletFriction;
@@ -372,7 +373,10 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			double dx = bulletSpeed * cosa;// +self.SpeedX;
 			double dy = bulletSpeed * sina;// +self.SpeedY;
 
-			for (int tick = 0; tick < 300; tick++)
+			double sumDist = 0;
+			double needDist = premium ? premiumShotDistance : diagonalLen;
+
+			for (int tick = 0;; tick++)
 			{
 				Unit unit = TestCollision(x, y, tick);
 				if (unit != null)
@@ -381,6 +385,10 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 				y += dy;
 				dx *= friction;
 				dy *= friction;
+				bulletSpeed *= friction;
+				sumDist += bulletSpeed;
+				if (sumDist > needDist)
+					break;
 			}
 			return null;
 		}
@@ -494,7 +502,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 					test = inf / 2;
 				if (ObstacleBetween(tank, true))
 					test = inf / 2;
-				double flyTime = (self.GetDistanceTo(tank) - self.VirtualGunLength) / GetBulletSpeed();
+				double flyTime = (self.GetDistanceTo(tank) - self.VirtualGunLength) / regularBulletStartSpeed;
 				test += flyTime;
 				//double test = Math.Abs(self.GetTurretAngleTo(tank));
 				if (test < mi)
@@ -567,7 +575,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			if (dist > test)
 				return -inf;
 
-			
+
 			if (bonus.Type == BonusType.Medikit)
 			{
 				int[] ar = { 20, 35, 50, 70 };
@@ -593,7 +601,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 					}
 			}
 			else
-			{				
+			{
 				if (self.PremiumShellCount >= 4)
 					return -inf;
 			}
