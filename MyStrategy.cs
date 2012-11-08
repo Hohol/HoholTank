@@ -11,7 +11,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 		const int repairVal = 50;
 		const double regularBulletStartSpeed = 16.500438538620;
 		const double premiumBulletStartSpeed = 13.068000645325;
-		const double maxAngle = Math.PI / 12;
+		//const double maxAngle = Math.PI / 12;
 		const double maxAngleForBackwards = Math.PI / 20;
 		const double regularBulletFriction = 0.995;
 		const double premiumBulletFriction = 0.99;
@@ -68,16 +68,26 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			if (victim != null)
 				TurnToMovingTank(victim, false);
 
-			Unit aim = null;
-			if(self.PremiumShellCount > 0)
-				aim = EmulateShot(true);
-			if (aim == null)
-				aim = EmulateShot(false);
-			if (world.Tick >= 1 && aim != null && aim is Tank && !IsDead((Tank)aim))
-				move.FireType = FireType.PremiumPreferred;
+			Unit aimPrem = self.PremiumShellCount > 0 ? EmulateShot(true) : null;
+			Unit aimReg = EmulateShot(false);
+
+			if (aimPrem != null)
+				if (!(aimPrem is Tank) || IsDead((Tank)aimPrem))
+					aimPrem = null;
+			if (aimReg != null)
+				if (!(aimReg is Tank) || IsDead((Tank)aimReg))
+					aimReg = null;
+
+			if (aimPrem != null && ((Tank)aimPrem).HullDurability > 20)
+				move.FireType = FireType.Premium;
+			else if (aimReg != null)
+				move.FireType = FireType.Regular;
+
+			//if (/*world.Tick >= 1 && */aim != null && aim is Tank && !IsDead((Tank)aim))
+			//	move.FireType = FireType.PremiumPreferred;
 
 			bool med = bonus != null && bonus.Type != BonusType.AmmoCrate;
-			if (world.Tick > 300 && victim != null && !HaveTimeToTurn(victim) && (self.CrewHealth > 35 && self.HullDurability > 35 || !med))
+			if (world.Tick > 300 && victim != null && !HaveTimeToTurn(victim) && (self.CrewHealth > 40 && self.HullDurability > 40 || !med))
 				TurnToMovingTank(victim, true);
 
 			//SimulateStuck();
@@ -323,7 +333,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 					//if (self.PremiumShellCount > 0)
 					//	GetKB(self.VirtualGunLength, 0.9, world.Width, 0.1, out k, out b);
 					//else
-					GetKB(self.VirtualGunLength, 1, world.Width, 0.2, out k, out b);
+					GetKB(self.VirtualGunLength, 0.8, world.Width, 0.2, out k, out b);
 					precision = self.GetDistanceTo(ax, ay) * k + b;
 				}
 				else
@@ -438,6 +448,12 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 				move.LeftTrackPower = d;
 				move.RightTrackPower = 1;
 			}/**/
+
+			//double k, b;
+			//GetKB(self.Width / 2, Math.PI / 7, world.Width, Math.PI / 12, out k, out b);
+
+			//double maxAngle = k * self.GetDistanceTo(x, y) + b;
+			double maxAngle = Math.PI / 6;
 
 			if (angle > maxAngle)
 			{
@@ -557,10 +573,10 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			double r = 0;
 			double dist;
 			if (forward)
-				dist = self.GetDistanceTo(bonus) + Math.Abs(self.GetAngleTo(bonus)) / Math.PI * world.Width * 0.7;
+				dist = self.GetDistanceTo(bonus) + Math.Abs(self.GetAngleTo(bonus)) / Math.PI * world.Width * 0.7 / enemyCnt;
 			else
 			{
-				dist = self.GetDistanceTo(bonus) + (1 - Math.Abs(self.GetAngleTo(bonus)) / Math.PI) * world.Width * 0.7;
+				dist = self.GetDistanceTo(bonus) + (1 - Math.Abs(self.GetAngleTo(bonus)) / Math.PI) * world.Width * 0.7 / enemyCnt;
 				dist /= backwardPowerQuotient;
 			}
 
@@ -645,4 +661,8 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			return TankType.Medium;
 		}
 	}
+}
+
+class Point
+{
 }
