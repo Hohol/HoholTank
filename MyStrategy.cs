@@ -659,8 +659,8 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			if (bonus.Type == BonusType.Medikit)
 			{
 				int[] ar = { 20, 35, 50, 70 };
-				if (self.CrewHealth > ar[ar.Length - 1] && enemyCnt != 1)
-					return -inf;
+				//if (self.CrewHealth > ar[ar.Length - 1] && enemyCnt != 1)
+					//return -inf;
 				for (int i = 0; i < ar.Length; i++)
 					if (self.CrewHealth <= ar[i])
 					{
@@ -671,8 +671,8 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			else if (bonus.Type == BonusType.RepairKit)
 			{
 				int[] ar = { 20, 35, 50, 100 };
-				if (self.HullDurability > self.HullMaxDurability - repairVal / 2 && enemyCnt != 1)
-					return -inf;
+				//if (self.HullDurability > self.HullMaxDurability - repairVal / 2 && enemyCnt != 1)
+					//return -inf;
 				for (int i = 0; i < ar.Length; i++)
 					if (self.HullDurability <= ar[i])
 					{
