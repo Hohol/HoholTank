@@ -506,40 +506,42 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 
 			double angle = self.GetAngleTo(x, y);
 
-			/*double d = (-Math.Abs(angle) + Math.PI / 2) / (Math.PI / 2);
-			//d *= 3;
-			if (angle > 0)
+			if (self.GetDistanceTo(x, y) >= 2*self.Width && Math.Abs(self.GetAngleTo(x,y)) < Math.PI/2)
+			//if(false)
 			{
-				move.LeftTrackPower = 1;
-				move.RightTrackPower = d;
+				double d = (-Math.Abs(angle) + Math.PI / 2) / (Math.PI / 2);
+				d = d * d * (d > 0 ? 1 : -1);
+				//d *= 3;
+				if (angle > 0)
+				{
+					move.LeftTrackPower = 1;
+					move.RightTrackPower = d;
+				}
+				else
+				{
+					move.LeftTrackPower = d;
+					move.RightTrackPower = 1;
+				}
 			}
 			else
 			{
-				move.LeftTrackPower = d;
-				move.RightTrackPower = 1;
-			}/**/
-
-			//double k, b;
-			//GetKB(self.Width / 2, Math.PI / 7, world.Width, Math.PI / 12, out k, out b);
-
-			//double maxAngle = k * self.GetDistanceTo(x, y) + b;
-			double maxAngle = Math.PI / 6;
-
-			if (angle > maxAngle)
-			{
-				move.LeftTrackPower = 1;
-				move.RightTrackPower = -1;
+				double maxAngle = Math.PI / 6;
+				if (angle > maxAngle)
+				{
+					move.LeftTrackPower = 1;
+					move.RightTrackPower = -1;
+				}
+				else if (angle < -maxAngle)
+				{
+					move.LeftTrackPower = -1;
+					move.RightTrackPower = 1;
+				}
+				else
+				{
+					move.LeftTrackPower = 1;
+					move.RightTrackPower = 1;
+				}
 			}
-			else if (angle < -maxAngle)
-			{
-				move.LeftTrackPower = -1;
-				move.RightTrackPower = 1;
-			}
-			else
-			{
-				move.LeftTrackPower = 1;
-				move.RightTrackPower = 1;
-			}/**/
 			if (!forward)
 			{
 				double tmp = move.LeftTrackPower;
@@ -563,7 +565,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 
 		bool IsDead(Tank tank)
 		{
-			return tank.CrewHealth <= 0 || tank.HullDurability <= 0;
+			return tank.CrewHealth <= 0 || tank.HullDurability <= 0 || tank.PlayerName == "EmptyPlayer";
 		}
 
 		double TimeToTurn(Unit unit)
@@ -639,7 +641,8 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			if (ObstacleBetween(bonus, false))
 				return -inf;
 			int enemyCnt = AliveEnemyCnt();
-			//return 3;
+			if (enemyCnt == 0)
+				enemyCnt++; // possible only with EmptyPlayer
 			double r = 0;
 			double dist;
 			if (forward)
@@ -649,6 +652,8 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 				dist = self.GetDistanceTo(bonus) + (1 - Math.Abs(self.GetAngleTo(bonus)) / Math.PI) * world.Width * 0.7 / enemyCnt;
 				dist /= backwardPowerQuotient;
 			}
+
+			//return 1e9 - dist;
 
 			double f5 = world.Width / 4;
 			double f1 = world.Width * 1.75;
@@ -660,7 +665,6 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 
 			if (dist > test)
 				return -inf;
-
 
 			if (bonus.Type == BonusType.Medikit)
 			{
