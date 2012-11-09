@@ -506,7 +506,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 
 			double angle = self.GetAngleTo(x, y);
 
-			if (self.GetDistanceTo(x, y) >= 2*self.Width && Math.Abs(self.GetAngleTo(x,y)) < Math.PI/4)
+			if (world.Tick >= runToCornerTime && self.GetDistanceTo(x, y) >= 2*self.Width && Math.Abs(self.GetAngleTo(x,y)) < Math.PI/4)
 			//if(false)
 			{
 				double d = (-Math.Abs(angle) + Math.PI / 2) / (Math.PI / 2);
