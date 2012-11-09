@@ -17,7 +17,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 		const double premiumBulletFriction = 0.99;
 		const double backwardPowerQuotient = 0.75;
 		const double premiumShotDistance = 850;
-		const int firstShootTick = 5;
+		const int firstShootTick = 4;
 		readonly double diagonalLen = Math.Sqrt(1280 * 1280 + 800 * 800);
 
 		const int stuckDetectTickCnt = 100;
@@ -66,6 +66,8 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 				MoveBackwards(out cornerX, out cornerY);
 				victim = GetNearest(cornerX, cornerY);
 			}
+			if (world.Tick <= firstShootTick)
+				victim = GetVictim();
 			if (victim != null)
 				TurnToMovingTank(victim, false);
 
@@ -81,13 +83,18 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 				if (!(aimReg is Tank) || IsDead((Tank)aimReg) || victim != null && aimReg.Id != victim.Id)	
 					aimReg = null;
 
+			if (world.Tick < firstShootTick)
+			{
+				aimPrem = null;
+				aimReg = null;
+			}
+
 			if (aimPrem != null && ((Tank)aimPrem).HullDurability > 20)
 				move.FireType = FireType.Premium;
 			else if (aimReg != null)
 			{
 				double angle = GetCollisionAngle((Tank)aimReg, resTick);
-				if(angle < Math.PI/4)
-				//if(angle > Math.PI/2 * 0.6)
+				if(angle < Math.PI/2 * 0.8)
 					move.FireType = FireType.Regular;
 			}
 						
