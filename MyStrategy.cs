@@ -17,6 +17,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 		const double premiumBulletFriction = 0.99;
 		const double backwardPowerQuotient = 0.75;
 		const double premiumShotDistance = 850;
+		const double ricochetAngle = Math.PI / 4;
 		const int firstShootTick = 4;
 		readonly double diagonalLen = Math.Sqrt(1280 * 1280 + 800 * 800);
 
@@ -94,7 +95,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			else if (aimReg != null)
 			{
 				double angle = GetCollisionAngle((Tank)aimReg, resTick);
-				if(angle < Math.PI/2 * 0.8)
+				if(angle < ricochetAngle)
 					move.FireType = FireType.Regular;
 			}
 						
