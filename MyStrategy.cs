@@ -9,8 +9,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 		const double inf = 1e20;
 		const int medikitVal = 35;
 		const int repairVal = 50;		
-		//const double maxAngle = Math.PI / 12;
-		const double maxAngleForBackwards = 0;//Math.PI / 20;
+		//const double maxAngleForBackwards = 0;//Math.PI / 20;
 		const double regularBulletFriction = 0.995;
 		const double premiumBulletFriction = 0.99;
 		const double regularBulletStartSpeed = 16.500438538620/regularBulletFriction;
@@ -19,6 +18,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 		const double premiumShotDistance = 850;
 		const double ricochetAngle = Math.PI * (1.0/3+1.0/4)/2;
 		const int firstShootTick = 4;
+		const double magicSpeed = 3.9584;
 		readonly double diagonalLen = Math.Sqrt(1280 * 1280 + 800 * 800);
 
 		const int stuckDetectTickCnt = 100;
@@ -59,6 +59,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 
 			bool forward;
 			Bonus bonus = GetBonus(out forward);
+			//bonus = null;
 			Tank victim = null;
 
 			cornerX = cornerY = -1;
@@ -115,6 +116,91 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			//SimulateStuck();
 
 			ManageStuck();
+
+			AvoidBullets();
+		}
+
+		enum MoveType
+		{
+			inertion, accelerationForward, accelerationBackward
+		}
+
+		bool IsMovingBackward()
+		{
+			double tx = 100 * Math.Cos(self.Angle);
+			double ty = 100 * Math.Sin(self.Angle);
+			return tx * self.SpeedX + ty * self.SpeedY < 0;
+		}
+
+		bool Menace(Shell bullet, MoveType type)
+		{
+			if(type == MoveType.accelerationBackward)
+				return true;
+
+			double friction;
+			if (bullet.Type == ShellType.Regular)
+				friction = regularBulletFriction;
+			else
+				friction = premiumBulletFriction;
+			double bulletX = bullet.X, bulletY = bullet.Y;
+			double myX = self.X, myY = self.Y;
+			double bulletSpeedX = bullet.SpeedX, bulletSpeedY = bullet.SpeedY;
+			double mySpeedX = self.SpeedX, mySpeedY = self.SpeedY;
+
+			double mySpeed = Math.Sqrt(Util.Sqr(self.SpeedX)+Util.Sqr(self.SpeedY));
+			if(IsMovingBackward())
+				mySpeed *= -1;
+
+			double cosa = Math.Cos(self.Angle);
+			double sina = Math.Sin(self.Angle);
+
+			for (int tick = 0; tick < 100; tick++)
+			{
+				bulletSpeedX *= friction;
+				bulletSpeedY *= friction;
+				bulletX += bulletSpeedX;
+				bulletY += bulletSpeedY;
+
+				if (type == MoveType.inertion)
+				{
+					;
+				}
+				else if (type == MoveType.accelerationForward)
+				{
+					mySpeed += (magicSpeed - mySpeed) / 20;
+					mySpeedX = mySpeed * cosa;
+					mySpeedY = mySpeed * sina;
+				}
+				myX += mySpeedX;
+				myY += mySpeedY;
+
+				double dx = myX - self.X;
+				double dy = myY - self.Y;
+				if (Inside(self, bulletX - dx, bulletY - dy, 10))
+					return true;
+			}
+			return false;
+		}
+
+		void AvoidBullets()
+		{
+			foreach (var bullet in world.Shells)
+			{
+				if (Menace(bullet, MoveType.inertion))
+				{
+					if (!Menace(bullet, MoveType.accelerationForward))
+					{
+						move.LeftTrackPower = 1;
+						move.RightTrackPower = 1;
+						return;
+					}
+					if (!Menace(bullet, MoveType.accelerationBackward))
+					{
+						move.LeftTrackPower = -1;
+						move.RightTrackPower = -1;
+					}
+				}
+			}
 		}
 
 		int experimentTick = 0;
@@ -388,7 +474,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			resX = x;
 			resY = y;
 
-			MoveTo(x, y, false);
+			MoveTo(resX, resY, false);
 
 			/*double x, y;
 			if (self.X < world.Width / 2)
@@ -449,7 +535,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 				}
 				else
 				{
-					precision = 8;
+					precision = 10;
 				}
 
 				if (Inside(unit, x - dx, y - dy, precision))
@@ -519,12 +605,12 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 		{
 			double angle = self.GetAngleTo(x, y);
 
-			if (angle > maxAngleForBackwards)
+			if (angle > 0)
 			{
 				move.LeftTrackPower = 1;
 				move.RightTrackPower = -1;
 			}
-			else if (angle < -maxAngleForBackwards)
+			else if (angle < -0)
 			{
 				move.LeftTrackPower = -1;
 				move.RightTrackPower = 1;
@@ -712,12 +798,6 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 
 			double k, b;
 			GetKB(1, world.Width, 5, world.Width / 4, out k, out b);
-
-			/*double f5 = world.Width / 4;
-			double f1 = world.Width;
-
-			double k = (f5 - f1) / 4;
-			double b = f1 - k;*/
 
 			double test = k * enemyCnt + b;
 
