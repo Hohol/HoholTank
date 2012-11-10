@@ -19,6 +19,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 		const double ricochetAngle = Math.PI * (1.0/3+1.0/4)/2;
 		const int firstShootTick = 4;
 		const double magicSpeed = 3.9584;
+		const string myName = "Hohol";
 		readonly double diagonalLen = Math.Sqrt(1280 * 1280 + 800 * 800);
 
 		const int stuckDetectTickCnt = 100;
@@ -78,7 +79,6 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 				victim = GetVictim();
 			if (victim != null)
 				TurnToMovingTank(victim, false);
-
 
 			int dummy, resTick;
 			Unit aimPrem = self.PremiumShellCount > 0 ? EmulateShot(true, out dummy) : null;
@@ -180,6 +180,8 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 				double dy = myY - self.Y;
 				if (Inside(self, bulletX - dx, bulletY - dy, 10))
 					return true;
+				if (TestCollision(bulletX, bulletY, tick) != null)
+					return false;
 			}
 			return false;
 		}
@@ -188,6 +190,8 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 		{
 			foreach (var bullet in world.Shells)
 			{
+				if (bullet.PlayerName == myName || bullet.PlayerName == "You")
+					continue;
 				if (Menace(bullet, MoveType.inertion))
 				{
 					if (!Menace(bullet, MoveType.accelerationForward))
@@ -505,6 +509,8 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 		{
 			foreach (var unit in ar)
 			{
+				if (unit.Id == self.Id) //!!!!!!!!!!!!!!!!!!!!!!!!
+					continue;
 				double r = Math.Min(unit.Width, unit.Height) / 2;
 				double t = tick;
 
