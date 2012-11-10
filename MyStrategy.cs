@@ -568,7 +568,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 
 		bool IsDead(Tank tank)
 		{
-			return tank.CrewHealth <= 0 || tank.HullDurability <= 0 || tank.PlayerName == "EmptyPlayer";
+			return tank.CrewHealth <= 0 || tank.HullDurability <= 0/* || tank.PlayerName == "EmptyPlayer"/**/;
 		}
 
 		double TimeToTurn(Unit unit)
@@ -639,9 +639,23 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			return r;
 		}
 
+		bool DangerPath(Bonus bonus)
+		{
+			foreach(var e1 in world.Tanks)
+				foreach(var e2 in world.Tanks)
+					if (e1.Id != e2.Id && e1.Id != self.Id && e2.Id != self.Id && !IsDead(e1) && !IsDead(e2))
+					{
+						if (Point.Intersect(new Point(self), new Point(bonus), new Point(e1), new Point(e2)))
+							return true;
+					}
+			return false;
+		}
+
 		double Importance(Bonus bonus, bool forward)
 		{
 			if (ObstacleBetween(bonus, false))
+				return -inf;
+			if (DangerPath(bonus))
 				return -inf;
 			int enemyCnt = AliveEnemyCnt();
 			if (enemyCnt == 0) // possible only with EmptyPlayer
@@ -745,6 +759,11 @@ struct Point
 	{
 		this.x = x;
 		this.y = y;
+	}
+	public Point(Unit unit)
+	{
+		this.x = unit.X;
+		this.y = unit.Y;
 	}
 	static public Point operator - (Point a, Point b)
 	{
