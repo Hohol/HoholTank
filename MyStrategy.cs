@@ -709,7 +709,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			else
 			{
 				if (self.PremiumShellCount < 4)
-					r = 1;
+					r = 2;
 			}
 			r *= 1e5;
 			return r + (10000 - dist);
@@ -808,5 +808,5 @@ class Util
 	static public double Sqr(double a)
 	{
 		return a * a;
-	}	
+	}
 }
