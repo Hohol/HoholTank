@@ -8,16 +8,16 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 	{
 		const double inf = 1e20;
 		const int medikitVal = 35;
-		const int repairVal = 50;
-		const double regularBulletStartSpeed = 16.500438538620;
-		const double premiumBulletStartSpeed = 13.068000645325;
+		const int repairVal = 50;		
 		//const double maxAngle = Math.PI / 12;
-		const double maxAngleForBackwards = Math.PI / 20;
+		const double maxAngleForBackwards = 0;//Math.PI / 20;
 		const double regularBulletFriction = 0.995;
 		const double premiumBulletFriction = 0.99;
+		const double regularBulletStartSpeed = 16.500438538620/regularBulletFriction;
+		const double premiumBulletStartSpeed = 13.068000645325/premiumBulletFriction;
 		const double backwardPowerQuotient = 0.75;
 		const double premiumShotDistance = 850;
-		const double ricochetAngle = Math.PI / 3;
+		const double ricochetAngle = Math.PI * (1.0/3+1.0/4)/2;
 		const int firstShootTick = 4;
 		readonly double diagonalLen = Math.Sqrt(1280 * 1280 + 800 * 800);
 
@@ -42,13 +42,20 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			this.self = self;
 			this.world = world;
 			this.move = move;
-
-			//System.Threading.Thread.CurrentThread.CurrentCulture =
-			//	System.Globalization.CultureInfo.InvariantCulture;
-			//printInfo();
-
+			
 			historyX[world.Tick] = self.X;
 			historyY[world.Tick] = self.Y;
+
+			/*
+			System.Threading.Thread.CurrentThread.CurrentCulture =
+				System.Globalization.CultureInfo.InvariantCulture;
+			//printInfo();
+			if (AliveEnemyCnt() == 0)
+			if(true)
+			{
+				Experiment();
+				return;
+			}/**/
 
 			bool forward;
 			Bonus bonus = GetBonus(out forward);
@@ -100,8 +107,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			}
 						
 			//bool med = bonus != null && bonus.Type != BonusType.AmmoCrate;
-			bool bonusSaves = bonus != null && 
-				(bonus.Type == BonusType.RepairKit && self.HullDurability <= 40 || bonus.Type == BonusType.Medikit && self.CrewHealth <= 40);
+			bool bonusSaves = BonusSaves(bonus);
 
 			if (world.Tick > runToCornerTime && victim != null && !HaveTimeToTurn(victim) && !bonusSaves)
 				TurnToMovingTank(victim, true);
@@ -109,6 +115,49 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			//SimulateStuck();
 
 			ManageStuck();
+		}
+
+		int experimentTick = 0;
+		bool experimentStarted = false;
+
+		void Experiment()
+		{
+			if (!experimentStarted)
+			{
+				/*if (Math.Abs(self.GetAngleTo(self.X+1000, self.Y)) > 1e-1)
+				{
+				    TurnTo(self.X + 1000, self.Y);
+				    return;
+				}*/
+				if (Math.Abs(self.TurretRelativeAngle-Math.PI/2) > 1e-4)
+				{
+					move.TurretTurn = -(self.TurretRelativeAngle-Math.PI/2);
+					return;
+				}
+				experimentStarted = (Math.Abs(self.SpeedX) < 1e-4 && Math.Abs(self.SpeedY) < 1e-4);
+			}
+			if (experimentStarted)
+			{
+				//move.FireType = FireType.Regular;
+				//file.WriteLine(self.SpeedX + " " + self.SpeedY);
+				move.LeftTrackPower = -1;
+				move.RightTrackPower = -1;
+				experimentTick++;
+			}
+		}
+
+		void printInfo()
+		{
+			foreach (var bullet in world.Shells)
+			{
+				//file.WriteLine(bullet.Id + " " + bullet.Type + " " + bullet.SpeedX + " " + bullet.SpeedY + " " + bullet.X + " " + bullet.Y);
+			}
+		}
+
+		bool BonusSaves(Bonus bonus)
+		{
+			return bonus != null &&
+				(bonus.Type == BonusType.RepairKit && self.HullDurability <= 40 || bonus.Type == BonusType.Medikit && self.CrewHealth <= 40);
 		}
 
 		private double GetCollisionAngle(Tank tank, int resTick) //always regular bullet
@@ -124,10 +173,10 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 
 			for (int tick = 0; tick < resTick; tick++)
 			{
-				bulletX += dx;
-				bulletY += dy;
 				dx *= regularBulletFriction;
 				dy *= regularBulletFriction;
+				bulletX += dx;
+				bulletY += dy;				
 				bulletSpeed *= regularBulletFriction;
 			}
 
@@ -276,15 +325,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			double h = unit.Height / 2 + precision;
 			return x >= -w && x <= w &&
 				   y >= -h / 2 && y <= h;
-		}
-
-		void printInfo()
-		{
-			foreach (var bullet in world.Shells)
-			{
-				//file.WriteLine(bullet.Id + " " + bullet.Type + " " + bullet.SpeedX + " " + bullet.SpeedY);
-			}
-		}
+		}	
 
 		void SimulateStuck()
 		{
@@ -408,7 +449,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 				}
 				else
 				{
-					precision = 4;
+					precision = 8;
 				}
 
 				if (Inside(unit, x - dx, y - dy, precision))
@@ -566,7 +607,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 
 		bool IsDead(Tank tank)
 		{
-			return tank.CrewHealth <= 0 || tank.HullDurability <= 0/* || tank.PlayerName == "EmptyPlayer"/**/;
+			return tank.CrewHealth <= 0 || tank.HullDurability <= 0 || tank.PlayerName == "EmptyPlayer"/**/;
 		}
 
 		double TimeToTurn(Unit unit)
@@ -639,6 +680,8 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 
 		bool DangerPath(Bonus bonus)
 		{
+			if (BonusSaves(bonus) && self.GetDistanceTo(bonus) <= self.Width * 2)
+				return false;
 			foreach(var e1 in world.Tanks)
 				foreach(var e2 in world.Tanks)
 					if (e1.Id != e2.Id && e1.Id != self.Id && e2.Id != self.Id && !IsDead(e1) && !IsDead(e2))
