@@ -17,7 +17,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 		const double premiumBulletFriction = 0.99;
 		const double backwardPowerQuotient = 0.75;
 		const double premiumShotDistance = 850;
-		const double ricochetAngle = Math.PI / 4;
+		const double ricochetAngle = Math.PI / 3;
 		const int firstShootTick = 4;
 		readonly double diagonalLen = Math.Sqrt(1280 * 1280 + 800 * 800);
 
@@ -266,14 +266,14 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			return null;
 		}
 
-		bool Inside(Unit unit, double x, double y, double precision = 1)
+		bool Inside(Unit unit, double x, double y, double precision)
 		{
 			double d = unit.GetDistanceTo(x, y);
 			double angle = unit.GetAngleTo(x, y);
 			x = d * Math.Cos(angle);
 			y = d * Math.Sin(angle);
-			double w = unit.Width / 2 * precision;
-			double h = unit.Height / 2 * precision;
+			double w = unit.Width / 2 + precision;
+			double h = unit.Height / 2 + precision;
 			return x >= -w && x <= w &&
 				   y >= -h / 2 && y <= h;
 		}
@@ -403,15 +403,12 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 					//if (self.PremiumShellCount > 0)
 					//	GetKB(self.VirtualGunLength, 0.9, world.Width, 0.1, out k, out b);
 					//else
-					GetKB(self.VirtualGunLength, 0.8, world.Width, 0.2, out k, out b);
+					GetKB(self.VirtualGunLength, 0, world.Width, -8, out k, out b);
 					precision = self.GetDistanceTo(ax, ay) * k + b;
 				}
 				else
 				{
-					if (unit is Tank)
-						precision = 1.2;
-					else
-						precision = 2;
+					precision = 4;
 				}
 
 				if (Inside(unit, x - dx, y - dy, precision))
