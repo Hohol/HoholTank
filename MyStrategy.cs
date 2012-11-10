@@ -98,8 +98,11 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 					move.FireType = FireType.Regular;
 			}
 						
-			bool med = bonus != null && bonus.Type != BonusType.AmmoCrate;
-			if (world.Tick > runToCornerTime && victim != null && !HaveTimeToTurn(victim) && (self.CrewHealth > 40 && self.HullDurability > 40 || !med))
+			//bool med = bonus != null && bonus.Type != BonusType.AmmoCrate;
+			bool bonusSaves = bonus != null && 
+				(bonus.Type == BonusType.RepairKit && self.HullDurability <= 40 || bonus.Type == BonusType.Medikit && self.CrewHealth <= 40);
+
+			if (world.Tick > runToCornerTime && victim != null && !HaveTimeToTurn(victim) && !bonusSaves)
 				TurnToMovingTank(victim, true);
 
 			//SimulateStuck();
@@ -656,7 +659,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			//return 1e9 - dist;
 
 			double f5 = world.Width / 4;
-			double f1 = world.Width * 1.75;
+			double f1 = world.Width;
 
 			double k = (f5 - f1) / 4;
 			double b = f1 - k;
