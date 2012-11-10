@@ -644,9 +644,8 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			if (ObstacleBetween(bonus, false))
 				return -inf;
 			int enemyCnt = AliveEnemyCnt();
-			if (enemyCnt == 0)
-				enemyCnt++; // possible only with EmptyPlayer
-			double r = 0;
+			if (enemyCnt == 0) // possible only with EmptyPlayer
+				enemyCnt++;			
 			double dist;
 			if (forward)
 				dist = self.GetDistanceTo(bonus) + Math.Abs(self.GetAngleTo(bonus)) / Math.PI * world.Width * 0.7 / enemyCnt;
@@ -656,24 +655,25 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 				dist /= backwardPowerQuotient;
 			}
 
-			//return 1e9 - dist;
+			double k, b;
+			GetKB(1, world.Width, 5, world.Width / 4, out k, out b);
 
-			double f5 = world.Width / 4;
+			/*double f5 = world.Width / 4;
 			double f1 = world.Width;
 
 			double k = (f5 - f1) / 4;
-			double b = f1 - k;
+			double b = f1 - k;*/
 
-			double test = k * AliveEnemyCnt() + b;
+			double test = k * enemyCnt + b;
 
 			if (dist > test)
 				return -inf;
 
+			double r = 0;
+
 			if (bonus.Type == BonusType.Medikit)
 			{
 				int[] ar = { 20, 35, 50, 70 };
-				//if (self.CrewHealth > ar[ar.Length - 1] && enemyCnt != 1)
-					//return -inf;
 				for (int i = 0; i < ar.Length; i++)
 					if (self.CrewHealth <= ar[i])
 					{
@@ -684,8 +684,6 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			else if (bonus.Type == BonusType.RepairKit)
 			{
 				int[] ar = { 20, 35, 50, 100 };
-				//if (self.HullDurability > self.HullMaxDurability - repairVal / 2 && enemyCnt != 1)
-					//return -inf;
 				for (int i = 0; i < ar.Length; i++)
 					if (self.HullDurability <= ar[i])
 					{
@@ -695,8 +693,8 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			}
 			else
 			{
-				if (self.PremiumShellCount >= 4)
-					return -inf;
+				if (self.PremiumShellCount < 4)
+					r = 1;
 			}
 			r *= 1e5;
 			return r + (10000 - dist);
