@@ -59,7 +59,6 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 
 			bool forward;
 			Bonus bonus = GetBonus(out forward);
-			//bonus = null;
 			Tank victim = null;
 
 			cornerX = cornerY = -1;
@@ -134,9 +133,6 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 
 		bool Menace(Shell bullet, MoveType type)
 		{
-			if(type == MoveType.accelerationBackward)
-				return true;
-
 			double friction;
 			if (bullet.Type == ShellType.Regular)
 				friction = regularBulletFriction;
@@ -171,6 +167,12 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 					mySpeedX = mySpeed * cosa;
 					mySpeedY = mySpeed * sina;
 				}
+				else if (type == MoveType.accelerationBackward)
+				{
+					mySpeed -= (magicSpeed*self.EngineRearPowerFactor + mySpeed) / 20;
+					mySpeedX = mySpeed * cosa;
+					mySpeedY = mySpeed * sina;
+				}
 				myX += mySpeedX;
 				myY += mySpeedY;
 
@@ -198,6 +200,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 					{
 						move.LeftTrackPower = -1;
 						move.RightTrackPower = -1;
+						return;
 					}
 				}
 			}
@@ -410,7 +413,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			double w = unit.Width / 2 + precision;
 			double h = unit.Height / 2 + precision;
 			return x >= -w && x <= w &&
-				   y >= -h / 2 && y <= h;
+				   y >= -h && y <= h;
 		}	
 
 		void SimulateStuck()
