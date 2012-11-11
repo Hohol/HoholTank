@@ -27,6 +27,8 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 		const int stuckAvoidTime = 45;
 		const int runToCornerTime = 300;
 
+		int dummy;
+
 		double[] historyX = new double[10000];
 		double[] historyY = new double[10000];
 		double stuckDetectedTick = -1;
@@ -106,8 +108,9 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 				if(angle < ricochetAngle)
 					move.FireType = FireType.Regular;
 			}
-						
-			//bool med = bonus != null && bonus.Type != BonusType.AmmoCrate;
+
+			RotateForSafety();
+
 			bool bonusSaves = BonusSaves(bonus);
 
 			if (world.Tick > runToCornerTime && victim != null && !HaveTimeToTurn(victim) && !bonusSaves)
@@ -118,6 +121,63 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			ManageStuck();
 
 			AvoidBullets();
+		}
+
+		void RotateForSafety()
+		{
+			if (cornerX == -1 || self.GetDistanceTo(cornerX, cornerY) > self.Width)
+				return;
+			Tank tank = GetMostAngryEnemy();
+			if (tank == null)
+				return;
+			if (cornerX < world.Width / 2 && cornerY < world.Height / 2)
+			{
+				if (tank.X < tank.Y)
+					TurnTo(world.Width, self.Y);
+				else
+					TurnTo(self.X, world.Height);
+			}
+			else if (cornerX < world.Width / 2 && cornerY > world.Height / 2)
+			{
+				if (tank.X + tank.Y < world.Height)
+					TurnTo(world.Width, self.Y);					
+				else
+					TurnTo(self.X, 0);
+			}
+			else if (cornerX > world.Width / 2 && cornerY < world.Height / 2)
+			{
+				if (tank.X + tank.Y < world.Width)
+					TurnTo(self.X, world.Height);
+				else
+					TurnTo(0, self.Y);
+			}
+			else
+			{
+				if (tank.X < tank.Y + world.Width - world.Height)
+					TurnTo(self.X, 0);
+				else
+					TurnTo(0, self.Y);					
+			}
+		}
+
+		private Tank GetMostAngryEnemy()
+		{
+			double mi = inf;
+			Tank r = null;
+			foreach (var tank in world.Tanks)
+			{
+				if (tank.Id == self.Id || IsDead(tank) || self.GetDistanceTo(tank) <= world.Height / 2)
+					continue;
+				if (ObstacleBetween(tank, true))
+					continue;
+				double test = angleDiff(Math.Atan2(self.Y - tank.Y, self.X - tank.X), tank.Angle + tank.TurretRelativeAngle);
+				if (test < mi)
+				{
+					mi = test;
+					r = tank;
+				}
+			}
+			return r;
 		}
 
 		enum MoveType
@@ -179,7 +239,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 
 				double dx = myX - self.X;
 				double dy = myY - self.Y;
-				if (Inside(self, bulletX - dx, bulletY - dy, 10))
+				if (Inside(self, bulletX - dx, bulletY - dy, 11))
 					return true;
 				if (TestCollision(bulletX, bulletY, tick) != null)
 					return false;
@@ -187,9 +247,34 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			return false;
 		}
 
+		public class BulletComparer: IComparer<Shell>
+		{
+			Tank tank;
+			public BulletComparer(Tank tank)
+			{
+				this.tank = tank;
+			}
+			public int Compare(Shell a, Shell b)
+			{
+				if (a.Type != b.Type)
+				{
+					if (a.Type == ShellType.Premium)
+						return -1;
+					else
+						return 1;
+				}
+				if (tank.GetDistanceTo(a) < tank.GetDistanceTo(b))
+					return -1;
+				return 1;
+			}
+		}
+
 		void AvoidBullets()
 		{
-			foreach (var bullet in world.Shells)
+			List<Shell> bullets = new List<Shell>(world.Shells);
+			bullets.Sort(new BulletComparer(self));
+			//foreach (var bullet in world.Shells)
+			foreach (var bullet in bullets)
 			{
 				if (bullet.PlayerName == myName || bullet.PlayerName == "You")
 					continue;
@@ -471,7 +556,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 		void MoveBackwards(out double resX, out double resY)
 		{
 			double x, y;
-			double r = self.Width / 2;
+			double r = 0;// self.Width / 2;
 			if (self.X < world.Width / 2)
 				x = r;
 			else
@@ -541,7 +626,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 					//if (self.PremiumShellCount > 0)
 					//	GetKB(self.VirtualGunLength, 0.9, world.Width, 0.1, out k, out b);
 					//else
-					GetKB(self.VirtualGunLength, 0, world.Width, -8, out k, out b);
+					GetKB(self.VirtualGunLength, -7, world.Width, -11, out k, out b);
 					precision = self.GetDistanceTo(ax, ay) * k + b;
 				}
 				else
@@ -780,16 +865,28 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 
 		bool DangerPath(Bonus bonus)
 		{
+			if (AliveEnemyCnt() == 5)
+				return false;
 			if (BonusSaves(bonus) && self.GetDistanceTo(bonus) <= self.Width * 2)
 				return false;
+
 			foreach(var e1 in world.Tanks)
 				foreach(var e2 in world.Tanks)
 					if (e1.Id != e2.Id && e1.Id != self.Id && e2.Id != self.Id && !IsDead(e1) && !IsDead(e2))
 					{
 						if (Point.Intersect(new Point(self), new Point(bonus), new Point(e1), new Point(e2)))
 							return true;
+						if (Between(e1, e2, bonus) && Between(e2, e1, bonus))
+							return true;
 					}
 			return false;
+		}
+
+		bool Between(Tank a, Tank b, Bonus bonus)
+		{
+			double ang1 = Math.Atan2(b.Y - a.Y, b.X - a.X);
+			double ang2 = Math.Atan2(bonus.Y - a.Y, bonus.X - a.X);
+			return angleDiff(ang1, ang2) <= Math.PI / 10;
 		}
 
 		double Importance(Bonus bonus, bool forward)
