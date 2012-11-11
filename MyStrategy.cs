@@ -60,6 +60,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 
 			bool forward;
 			Bonus bonus = GetBonus(out forward);
+			//bonus = null;
 			Tank victim = null;
 
 			cornerX = cornerY = -1;
@@ -470,14 +471,15 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 		void MoveBackwards(out double resX, out double resY)
 		{
 			double x, y;
+			double r = self.Width / 2;
 			if (self.X < world.Width / 2)
-				x = 0;
+				x = r;
 			else
-				x = world.Width;
+				x = world.Width-r;
 			if (self.Y < world.Height / 2 + 15)
-				y = 0;
+				y = r;
 			else
-				y = world.Height;
+				y = world.Height-r;
 			resX = x;
 			resY = y;
 
@@ -637,7 +639,10 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			double r = Math.Min(self.Width, self.Height) / 2;
 			if (self.GetDistanceTo(x, y) < r)
 			{
-				TurnTo(world.Width / 2, world.Height / 2);
+				if (self.X < world.Width / 2)
+					TurnTo(world.Height / 2, world.Height / 2);
+				else
+					TurnTo(world.Width - world.Height / 2, world.Height / 2);
 				return;
 			}
 
