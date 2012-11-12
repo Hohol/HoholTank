@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk.Model;
+using System.IO;
 
 namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 {
@@ -9,16 +10,14 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 		const double inf = 1e20;
 		const int medikitVal = 35;
 		const int repairVal = 50;		
-		//const double maxAngleForBackwards = 0;//Math.PI / 20;
 		const double regularBulletFriction = 0.995;
 		const double premiumBulletFriction = 0.99;
 		const double regularBulletStartSpeed = 16.500438538620/regularBulletFriction;
 		const double premiumBulletStartSpeed = 13.068000645325/premiumBulletFriction;
-		//const double backwardPowerQuotient = 0.75;
 		const double premiumShotDistance = 850;
 		const double ricochetAngle = Math.PI * (1.0/3+1.0/4)/2;
 		const int firstShootTick = 4;
-		const double magicSpeed = 3.9584;
+		//const double magicSpeed = 3.9584;
 		const string myName = "Hohol";
 		readonly double diagonalLen = Math.Sqrt(1280 * 1280 + 800 * 800);
 
@@ -38,7 +37,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 		World world;
 		Move move;
 
-		//System.IO.StreamWriter file = new System.IO.StreamWriter("output.txt");
+		StreamWriter file, teorFile, realFile;
 
 		public void Move(Tank self, World world, Move move)
 		{
@@ -49,12 +48,8 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			historyX[world.Tick] = self.X;
 			historyY[world.Tick] = self.Y;
 
-			/*
-			System.Threading.Thread.CurrentThread.CurrentCulture =
-				System.Globalization.CultureInfo.InvariantCulture;
-			//printInfo();
-			if (AliveEnemyCnt() == 0)
-			if(true)
+			
+			/*if (AliveEnemyCnt() == 0)
 			{
 				Experiment();
 				return;
@@ -129,6 +124,26 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			ManageStuck();
 
 			AvoidBullets();
+
+			/*if (world.Tick >= testStartTick && world.Tick < testEndTick)
+			{
+				realFile.WriteLine(self.SpeedX + " " + self.SpeedY + " " + self.AngularSpeed + " " + self.Angle);
+				realFile.WriteLine(move.LeftTrackPower + " " + move.RightTrackPower + " " + self.AngularSpeed);
+			}/**/
+		}
+
+		public TankType SelectTank(int tankIndex, int teamSize)
+		{
+#if TEDDY_BEARS
+			file = new StreamWriter("output.txt");
+			file.AutoFlush = true;
+			realFile = new StreamWriter("real.txt");
+			realFile.AutoFlush = true;
+			teorFile = new StreamWriter("teor.txt");
+			teorFile.AutoFlush = true;
+			System.Threading.Thread.CurrentThread.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
+#endif
+			return TankType.Medium;
 		}
 
 		void RotateForSafety()
@@ -178,7 +193,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 					continue;
 				if (ObstacleBetween(tank, true))
 					continue;
-				double test = angleDiff(Math.Atan2(self.Y - tank.Y, self.X - tank.X), tank.Angle + tank.TurretRelativeAngle);
+				double test = Math.Abs(tank.GetTurretAngleTo(self));
 				if (test < mi)
 				{
 					mi = test;
@@ -219,8 +234,14 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			double cosa = Math.Cos(self.Angle);
 			double sina = Math.Sin(self.Angle);
 
+			double curMagicSpeed = (self.CrewHealth + 100.0) * 0.0197916745;
+
 			for (int tick = 0; tick < 100; tick++)
 			{
+				if (world.Tick == testStartTick && type == MoveType.accelerationForward)
+				{
+					//teorFile.WriteLine(myX + " " + myY + " " + mySpeedX + " " + mySpeedY);
+				}
 				bulletSpeedX *= friction;
 				bulletSpeedY *= friction;
 				bulletX += bulletSpeedX;
@@ -232,13 +253,13 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 				}
 				else if (type == MoveType.accelerationForward)
 				{
-					mySpeed += (magicSpeed - mySpeed) / 20;
+					mySpeed += (curMagicSpeed - mySpeed) / 20;
 					mySpeedX = mySpeed * cosa;
 					mySpeedY = mySpeed * sina;
 				}
 				else if (type == MoveType.accelerationBackward)
 				{
-					mySpeed -= (magicSpeed*self.EngineRearPowerFactor + mySpeed) / 20;
+					mySpeed -= (curMagicSpeed*self.EngineRearPowerFactor + mySpeed) / 20;
 					mySpeedX = mySpeed * cosa;
 					mySpeedY = mySpeed * sina;
 				}
@@ -254,6 +275,8 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			}
 			return false;
 		}
+
+		const int testStartTick = 2454, testEndTick = 2471;
 
 		public class BulletComparer: IComparer<Shell>
 		{
@@ -283,7 +306,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			bullets.Sort(new BulletComparer(self));
 			//foreach (var bullet in world.Shells)
 			foreach (var bullet in bullets)
-			{
+			{				
 				if (bullet.PlayerName == myName || bullet.PlayerName == "You")
 					continue;
 				if (Menace(bullet, MoveType.inertion))
@@ -307,28 +330,44 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 		int experimentTick = 0;
 		bool experimentStarted = false;
 
+		bool Piece()
+		{
+			return Math.Abs(self.SpeedX) < 1e-5 && Math.Abs(self.SpeedY) < 1e-5
+					&& Math.Abs(self.AngularSpeed) < 1e-5;
+		}
+
 		void Experiment()
 		{
 			if (!experimentStarted)
 			{
-				/*if (Math.Abs(self.GetAngleTo(self.X+1000, self.Y)) > 1e-1)
+				if (self.GetDistanceTo(world.Width / 2, world.Height / 2) > self.Width)
 				{
-				    TurnTo(self.X + 1000, self.Y);
+					MoveTo(world.Width / 2, world.Height / 2,true);
+					return;
+				}
+				/*if (Math.Abs(self.GetAngleTo(world.Width/2,world.Height/2)) > 1e-1)
+				{
+					TurnTo(world.Width / 2, world.Height / 2);
 				    return;
 				}*/
-				if (Math.Abs(self.TurretRelativeAngle-Math.PI/2) > 1e-4)
+				/*if (Math.Abs(self.TurretRelativeAngle-Math.PI/2) > 1e-4)
 				{
 					move.TurretTurn = -(self.TurretRelativeAngle-Math.PI/2);
 					return;
-				}
-				experimentStarted = (Math.Abs(self.SpeedX) < 1e-4 && Math.Abs(self.SpeedY) < 1e-4);
+				}*/
+				experimentStarted = Piece();
 			}
+			//const int rotateTickCnt = 300;
 			if (experimentStarted)
 			{
-				//move.FireType = FireType.Regular;
-				//file.WriteLine(self.SpeedX + " " + self.SpeedY);
-				move.LeftTrackPower = -1;
-				move.RightTrackPower = -1;
+				if (experimentTick == 0)
+					file.WriteLine(self.CrewHealth);
+				file.WriteLine(Math.Sqrt(Util.Sqr(self.SpeedX) + Util.Sqr(self.SpeedY)));
+				//if (experimentTick < rotateTickCnt)
+				{
+					move.LeftTrackPower = 1;
+					move.RightTrackPower = 1;
+				}
 				experimentTick++;
 			}
 		}
@@ -880,7 +919,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 
 			foreach(var e1 in world.Tanks)
 				foreach(var e2 in world.Tanks)
-					if (e1.Id != e2.Id && !e1.IsTeammate && e2.IsTeammate && !IsDead(e1) && !IsDead(e2))
+					if (e1.Id != e2.Id && !e1.IsTeammate && !e2.IsTeammate && !IsDead(e1) && !IsDead(e2))
 					{
 						if (Point.Intersect(new Point(self), new Point(bonus), new Point(e1), new Point(e2)))
 							return true;
@@ -983,12 +1022,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 		{
 			k = (y1 - y2) / (x1 - x2);
 			b = y1 - k * x1;
-		}
-
-		public TankType SelectTank(int tankIndex, int teamSize)
-		{
-			return TankType.Medium;
-		}
+		}		
 	}
 }
 
