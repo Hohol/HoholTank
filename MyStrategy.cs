@@ -791,36 +791,16 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 
 			Point []ar = GetBounds(self,0);
 
-
-			double angle = self.GetAngleTo(x, y);
-
-			if (world.Tick >= runToCornerTime && self.GetDistanceTo(x, y) >= 2*self.Width && Math.Abs(self.GetAngleTo(x,y)) < Math.PI/4 &&
-				DistanceToBorder() > self.Width/2+5)
-			//if(false)
+			Point p = new Point(x,y);
+			if (Point.wp(ar[3], ar[0], p) <= 0 && Point.wp(ar[2], ar[1],p) >= 0)
 			{
-				double d = (-Math.Abs(angle) + Math.PI / 2) / (Math.PI / 2);
-				d = d * d * (d > 0 ? 1 : -1);
-				//d *= 3;
-				if (angle > 0)
-				{
-					move.LeftTrackPower = 1;
-					move.RightTrackPower = d;
-				}
-				else
-				{
-					move.LeftTrackPower = d;
-					move.RightTrackPower = 1;
-				}
-			}
-			else
-			{
-				double maxAngle = Math.PI / 6;
-				if (angle > maxAngle)
+				const double wtf = 0.1;
+				if (self.AngularSpeed > wtf)
 				{
 					move.LeftTrackPower = 1;
 					move.RightTrackPower = -1;
 				}
-				else if (angle < -maxAngle)
+				else if (self.AngularSpeed < -wtf)
 				{
 					move.LeftTrackPower = -1;
 					move.RightTrackPower = 1;
@@ -829,6 +809,49 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 				{
 					move.LeftTrackPower = 1;
 					move.RightTrackPower = 1;
+				}
+			}
+			else
+			{
+				const double qsgAngle = Math.PI / 4;
+				double angle = self.GetAngleTo(x, y);
+
+				if (world.Tick >= runToCornerTime && self.GetDistanceTo(x, y) >= 2 * self.Width && Math.Abs(self.GetAngleTo(x, y)) < qsgAngle &&
+					DistanceToBorder() > self.Width / 2)
+				//if(false)
+				{
+					double d = (-Math.Abs(angle) + Math.PI / 2) / (Math.PI / 2);
+					d = d * d * d * (d > 0 ? 1 : -1);
+					//d *= 3;
+					if (angle > 0)
+					{
+						move.LeftTrackPower = 1;
+						move.RightTrackPower = d;
+					}
+					else
+					{
+						move.LeftTrackPower = d;
+						move.RightTrackPower = 1;
+					}
+				}
+				else
+				{
+					double maxAngle = Math.PI / 6;
+					if (angle > maxAngle)
+					{
+						move.LeftTrackPower = 1;
+						move.RightTrackPower = -1;
+					}
+					else if (angle < -maxAngle)
+					{
+						move.LeftTrackPower = -1;
+						move.RightTrackPower = 1;
+					}
+					else
+					{
+						move.LeftTrackPower = 1;
+						move.RightTrackPower = 1;
+					}
 				}
 			}
 			if (!forward)
