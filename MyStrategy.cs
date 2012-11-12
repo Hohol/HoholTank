@@ -14,7 +14,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 		const double premiumBulletFriction = 0.99;
 		const double regularBulletStartSpeed = 16.500438538620/regularBulletFriction;
 		const double premiumBulletStartSpeed = 13.068000645325/premiumBulletFriction;
-		const double backwardPowerQuotient = 0.75;
+		//const double backwardPowerQuotient = 0.75;
 		const double premiumShotDistance = 850;
 		const double ricochetAngle = Math.PI * (1.0/3+1.0/4)/2;
 		const int firstShootTick = 4;
@@ -88,11 +88,19 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			Unit aimReg = EmulateShot(false, out resTick);
 
 			if (aimPrem != null)
+			{
 				if (!(aimPrem is Tank) || IsDead((Tank)aimPrem) || victim != null && aimPrem.Id != victim.Id)
 					aimPrem = null;
+				if (aimPrem is Tank && ((Tank)aimPrem).IsTeammate)
+					aimPrem = null;
+			}
 			if (aimReg != null)
-				if (!(aimReg is Tank) || IsDead((Tank)aimReg) || victim != null && aimReg.Id != victim.Id)	
+			{
+				if (!(aimReg is Tank) || IsDead((Tank)aimReg) || victim != null && aimReg.Id != victim.Id)
 					aimReg = null;
+				if (aimReg is Tank && ((Tank)aimReg).IsTeammate)
+					aimReg = null;
+			}
 
 			if (world.Tick < firstShootTick)
 			{
@@ -166,7 +174,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			Tank r = null;
 			foreach (var tank in world.Tanks)
 			{
-				if (tank.Id == self.Id || IsDead(tank) || self.GetDistanceTo(tank) <= world.Height / 2)
+				if (tank.IsTeammate || IsDead(tank) || self.GetDistanceTo(tank) <= world.Height / 2)
 					continue;
 				if (ObstacleBetween(tank, true))
 					continue;
@@ -412,7 +420,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			double mi = inf;
 			foreach (Tank tank in world.Tanks)
 			{
-				if (tank.Id == self.Id || IsDead(tank))
+				if (tank.IsTeammate || IsDead(tank))
 					continue;
 				double dist = tank.GetDistanceTo(x, y);
 				if (dist < mi)
@@ -474,7 +482,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			double mi = inf;
 			foreach (Tank tank in world.Tanks)
 			{
-				if (tank.Id == self.Id || IsDead(tank))
+				if (tank.IsTeammate || IsDead(tank))
 					continue;
 				if (!EasyMoney(tank, damage))
 					continue;
@@ -810,7 +818,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			Tank res = null;
 			foreach (var tank in world.Tanks)
 			{
-				if (tank.Id == self.Id || IsDead(tank))
+				if (tank.IsTeammate || IsDead(tank))
 					continue;
 				double test = TimeToTurn(tank);
 				if (test < 0)
@@ -858,7 +866,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 		{
 			int r = 0;
 			foreach (Tank tank in world.Tanks)
-				if (tank.Id != self.Id && !IsDead(tank))
+				if (!tank.IsTeammate && !IsDead(tank))
 					r++;
 			return r;
 		}
@@ -872,7 +880,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 
 			foreach(var e1 in world.Tanks)
 				foreach(var e2 in world.Tanks)
-					if (e1.Id != e2.Id && e1.Id != self.Id && e2.Id != self.Id && !IsDead(e1) && !IsDead(e2))
+					if (e1.Id != e2.Id && !e1.IsTeammate && e2.IsTeammate && !IsDead(e1) && !IsDead(e2))
 					{
 						if (Point.Intersect(new Point(self), new Point(bonus), new Point(e1), new Point(e2)))
 							return true;
@@ -904,7 +912,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			else
 			{
 				dist = self.GetDistanceTo(bonus) + (1 - Math.Abs(self.GetAngleTo(bonus)) / Math.PI) * world.Width * 0.7 / enemyCnt;
-				dist /= backwardPowerQuotient;
+				dist /= self.EngineRearPowerFactor;
 			}
 
 			double k, b;
