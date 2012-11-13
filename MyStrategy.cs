@@ -47,7 +47,6 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			historyX[world.Tick] = self.X;
 			historyY[world.Tick] = self.Y;
 
-			
 			/*if (AliveEnemyCnt() == 0)
 			{
 				Experiment();
@@ -59,6 +58,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			//bonus = null;
 			Tank victim = null;
 
+			bool shootOnlyToVictim = false;
 			cornerX = cornerY = -1;
 			if (bonus != null && (world.Tick > runToCornerTime || bonus.Type == BonusType.AmmoCrate))
 			{
@@ -66,11 +66,14 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 				victim = GetAlmostDead();
 				if (victim == null)
 					victim = GetVictim();
+				else
+					shootOnlyToVictim = true;
 			}
 			else
 			{
 				MoveBackwards(out cornerX, out cornerY);
 				victim = GetNearest(cornerX, cornerY);
+				shootOnlyToVictim = true;
 			}
 			if (world.Tick <= firstShootTick)
 				victim = GetVictim();
@@ -83,14 +86,14 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 
 			if (aimPrem != null)
 			{
-				if (!(aimPrem is Tank) || IsDead((Tank)aimPrem) || victim != null && aimPrem.Id != victim.Id)
+				if (!(aimPrem is Tank) || IsDead((Tank)aimPrem) || shootOnlyToVictim && victim != null && aimPrem.Id != victim.Id)
 					aimPrem = null;
 				if (aimPrem is Tank && ((Tank)aimPrem).IsTeammate)
 					aimPrem = null;
 			}
 			if (aimReg != null)
 			{
-				if (!(aimReg is Tank) || IsDead((Tank)aimReg) || victim != null && aimReg.Id != victim.Id)
+				if (!(aimReg is Tank) || IsDead((Tank)aimReg) || shootOnlyToVictim && victim != null && aimReg.Id != victim.Id)
 					aimReg = null;
 				if (aimReg is Tank && ((Tank)aimReg).IsTeammate)
 					aimReg = null;
@@ -201,11 +204,11 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			inertion, accelerationForward, accelerationBackward
 		}
 
-		bool IsMovingBackward()
+		bool IsMovingBackward(Unit unit)
 		{
-			double tx = 100 * Math.Cos(self.Angle);
-			double ty = 100 * Math.Sin(self.Angle);
-			return tx * self.SpeedX + ty * self.SpeedY < 0;
+			double tx = 100 * Math.Cos(unit.Angle);
+			double ty = 100 * Math.Sin(unit.Angle);
+			return tx * unit.SpeedX + ty * unit.SpeedY < 0;
 		}
 
 		bool Menace(Shell bullet, MoveType type)
@@ -221,7 +224,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			double mySpeedX = self.SpeedX, mySpeedY = self.SpeedY;
 
 			double mySpeed = Math.Sqrt(Util.Sqr(self.SpeedX)+Util.Sqr(self.SpeedY));
-			if(IsMovingBackward())
+			if(IsMovingBackward(self))
 				mySpeed *= -1;
 
 			double cosa = Math.Cos(self.Angle);
@@ -257,9 +260,9 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 
 				double dx = myX - self.X;
 				double dy = myY - self.Y;
-				if (Inside(self, bulletX - dx, bulletY - dy, 11))
+				if (Inside(self, bulletX - dx, bulletY - dy, 8))
 					return true;
-				if (TestCollision(bulletX, bulletY, tick) != null)
+				if (TestCollision(bulletX, bulletY, tick,-17,-7) != null)
 					return false;
 			}
 			return false;
@@ -544,7 +547,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			return null;
 		}
 
-		bool Inside(Unit unit, double x, double y, double precision)
+		bool Inside(Unit unit, double x, double y, double precision, bool enemy = false)
 		{
 			double d = unit.GetDistanceTo(x, y);
 			double angle = unit.GetAngleTo(x, y);
@@ -552,8 +555,23 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			y = d * Math.Sin(angle);
 			double w = unit.Width / 2 + precision;
 			double h = unit.Height / 2 + precision;
-			return x >= -w && x <= w &&
-				   y >= -h && y <= h;
+			double lx = -w, rx = w;
+			double ly = -h, ry = h;
+			if (enemy && Math.Sqrt(Util.Sqr(unit.SpeedX)+Util.Sqr(unit.SpeedY)) > 1)
+			{
+				if (IsMovingBackward(unit))
+				{
+					lx = 0;
+				}
+				else
+				{
+					rx = 0;
+				}
+			}
+			return x >= lx && x <= rx &&
+				y >= ly && y <= ry;
+			//return x >= -w && x <= w &&
+			//	   y >= -h && y <= h;
 		}	
 
 		void SimulateStuck()
@@ -642,7 +660,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			return Math.Sqrt(dx * dx + dy * dy);
 		}
 
-		Unit TestCollision(Unit[] ar, double x, double y, int tick)
+		Unit TestCollision(Unit[] ar, double x, double y, int tick, double enemyPrecision, double obstaclePrecision)
 		{
 			foreach (var unit in ar)
 			{
@@ -670,32 +688,33 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 				double dy = ay - unit.Y;
 
 				double precision;
+				bool enemy = false;
 				if (unit is Tank && !IsDead((Tank)unit) && !((Tank)unit).IsTeammate)
 				{
-					double k, b;
-					//if (self.PremiumShellCount > 0)
-					//	GetKB(self.VirtualGunLength, 0.9, world.Width, 0.1, out k, out b);
-					//else
-					GetKB(self.VirtualGunLength, -7, world.Width, -11, out k, out b);
-					precision = self.GetDistanceTo(ax, ay) * k + b;
+					/*double k, b;
+					GetKB(self.VirtualGunLength, -15, world.Width, -20, out k, out b);
+					precision = self.GetDistanceTo(ax, ay) * k + b;*/
+					precision = enemyPrecision;
+					enemy = true;
 				}
 				else
 				{
-					precision = 10;
+					//precision = 10;
+					precision = obstaclePrecision;
 				}
 
-				if (Inside(unit, x - dx, y - dy, precision))
+				if (Inside(unit, x - dx, y - dy, precision,enemy))
 					return unit;
 			}
 			return null;
 		}
 
-		Unit TestCollision(double x, double y, int tick)
+		Unit TestCollision(double x, double y, int tick, double enemyPrecision, double obstaclePrecision)
 		{
-			Unit r = TestCollision(world.Bonuses, x, y, tick);
+			Unit r = TestCollision(world.Bonuses, x, y, tick,enemyPrecision,obstaclePrecision);
 			if (r != null)
 				return r;
-			r = TestCollision(world.Tanks, x, y, tick);
+			r = TestCollision(world.Tanks, x, y, tick,enemyPrecision,obstaclePrecision);
 			if (r != null)
 				return r;
 			return null;
@@ -728,7 +747,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 
 			for (int tick = 0;; tick++)
 			{
-				Unit unit = TestCollision(x, y, tick);
+				Unit unit = TestCollision(x, y, tick, -17, 10);
 				if (unit != null)
 				{
 					resTick = tick;
@@ -753,13 +772,13 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 
 			if (angle > 0)
 			{
-				move.LeftTrackPower = 1;
+				move.LeftTrackPower = self.EngineRearPowerFactor;
 				move.RightTrackPower = -1;
 			}
 			else if (angle < -0)
 			{
 				move.LeftTrackPower = -1;
-				move.RightTrackPower = 1;
+				move.RightTrackPower = self.EngineRearPowerFactor;
 			}
 		}
 
@@ -904,7 +923,9 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 					test = inf / 2;
 				double flyTime = (self.GetDistanceTo(tank) - self.VirtualGunLength) / regularBulletStartSpeed;
 				test += flyTime;
-				//double test = Math.Abs(self.GetTurretAngleTo(tank));
+
+				//test = Math.Min(Math.Abs(tank.GetAngleTo(self)), angleDiff(tank.GetAngleTo(self), Math.PI));
+
 				if (test < mi)
 				{
 					mi = test;
@@ -923,7 +944,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			double y = self.Y;
 			for (int i = 0; i <= stepCnt; i++)
 			{
-				Unit o = TestCollision(x, y, 0);
+				Unit o = TestCollision(x, y, 0, 0, 0);
 				x += dx;
 				y += dy;
 
@@ -1004,7 +1025,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 
 			if (bonus.Type == BonusType.Medikit)
 			{
-				int[] ar = { 20, 35, 50, 70 };
+				int[] ar = { 25, 40, 55, 75 };
 				for (int i = 0; i < ar.Length; i++)
 					if (self.CrewHealth <= ar[i])
 					{
