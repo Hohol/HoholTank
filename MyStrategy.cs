@@ -7,43 +7,39 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 {
 	public sealed class MyStrategy : IStrategy
 	{
-		const double inf = 1e20;
-		const int medikitVal = 35;
-		const int repairVal = 50;		
-		const double regularBulletFriction = 0.995;
-		const double premiumBulletFriction = 0.99;
-		const double regularBulletStartSpeed = 16.500438538620/regularBulletFriction;
-		const double premiumBulletStartSpeed = 13.068000645325/premiumBulletFriction;
-		const double premiumShotDistance = 850;
-		const double ricochetAngle = Math.PI/3;
-		const int firstShootTick = 4;
-		const string myName = "Hohol";
-		readonly double diagonalLen = Math.Sqrt(1280 * 1280 + 800 * 800);
-
-		const int stuckDetectTickCnt = 100;
-		const double stuckDist = 10;
-		const int stuckAvoidTime = 45;
-		const int runToCornerTime = 300;
-
-		int dummy;
-
-		double[] historyX = new double[10000];
-		double[] historyY = new double[10000];
-		double stuckDetectedTick = -1;
-		double cornerX, cornerY;
-
-		Tank self;
-		World world;
-		Move move;
-
-		StreamWriter file, teorFile, realFile;
-
+		AbstractActualStrategy strat;
+		public TankType SelectTank(int tankIndex, int teamSize)
+		{
+			/*#if TEDDY_BEARS
+						file = new StreamWriter("output.txt");
+						file.AutoFlush = true;
+						realFile = new StreamWriter("real.txt");
+						realFile.AutoFlush = true;
+						teorFile = new StreamWriter("teor.txt");
+						teorFile.AutoFlush = true;
+						System.Threading.Thread.CurrentThread.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
+			#endif*/
+			if (teamSize == 1)
+				strat = new OneTankActualStrategy();
+			else
+				strat = new TwoTankskActualStrategy();
+			return TankType.Medium;
+		}
 		public void Move(Tank self, World world, Move move)
+		{
+			strat.Move(self, world, move);
+		}
+	}
+
+	class OneTankActualStrategy : AbstractActualStrategy
+	{
+		const int firstShootTick = 4;
+		override public void Move(Tank self, World world, Move move)
 		{
 			this.self = self;
 			this.world = world;
 			this.move = move;
-			
+
 			historyX[world.Tick] = self.X;
 			historyY[world.Tick] = self.Y;
 
@@ -110,11 +106,16 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			else if (aimReg != null)
 			{
 				double angle = GetCollisionAngle((Tank)aimReg, resTick);
-				if(angle < ricochetAngle-Math.PI/10)
+				if (angle < ricochetAngle - Math.PI / 10)
 					move.FireType = FireType.Regular;
 			}
 
 			RotateForSafety();
+
+			if (AliveEnemyCnt() == 1)
+			{
+				var tank = PickEnemy();
+			}
 
 			bool bonusSaves = BonusSaves(bonus);
 
@@ -127,22 +128,174 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 
 			AvoidBullets();
 		}
+	}
 
-		public TankType SelectTank(int tankIndex, int teamSize)
+	class TwoTankskActualStrategy : AbstractActualStrategy
+	{
+		override public void Move(Tank self, World world, Move move)
 		{
-#if TEDDY_BEARS
-			file = new StreamWriter("output.txt");
-			file.AutoFlush = true;
-			realFile = new StreamWriter("real.txt");
-			realFile.AutoFlush = true;
-			teorFile = new StreamWriter("teor.txt");
-			teorFile.AutoFlush = true;
-			System.Threading.Thread.CurrentThread.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
-#endif
-			return TankType.Medium;
+			this.self = self;
+			this.world = world;
+			this.move = move;
+
+			historyX[world.Tick] = self.X;
+			historyY[world.Tick] = self.Y;
+
+			/*if (AliveEnemyCnt() == 0)
+			{
+				Experiment();
+				return;
+			}/**/
+
+			bool forward;
+			Bonus bonus = GetBonus(out forward);
+			//bonus = null;
+			Tank victim = GetWeakest();
+
+			bool shootOnlyToVictim = false;
+			cornerX = cornerY = -1;
+			if (bonus != null && (world.Tick > runToCornerTime || bonus.Type == BonusType.AmmoCrate))
+			{
+				MoveTo(bonus, forward);
+			}
+			else
+			{
+				MoveBackwards(out cornerX, out cornerY);
+			}
+			if (victim != null)
+				TurnToMovingTank(victim, false);
+
+			int dummy, resTick;
+			Unit aimPrem = self.PremiumShellCount > 0 ? EmulateShot(true, out dummy) : null;
+			Unit aimReg = EmulateShot(false, out resTick);
+
+			if (aimPrem != null)
+			{
+				if (!(aimPrem is Tank) || IsDead((Tank)aimPrem) || shootOnlyToVictim && victim != null && aimPrem.Id != victim.Id)
+					aimPrem = null;
+				if (aimPrem is Tank && ((Tank)aimPrem).IsTeammate)
+					aimPrem = null;
+			}
+			if (aimReg != null)
+			{
+				if (!(aimReg is Tank) || IsDead((Tank)aimReg) || shootOnlyToVictim && victim != null && aimReg.Id != victim.Id)
+					aimReg = null;
+				if (aimReg is Tank && ((Tank)aimReg).IsTeammate)
+					aimReg = null;
+			}
+
+			if (aimPrem != null && ((Tank)aimPrem).HullDurability > 20)
+				move.FireType = FireType.Premium;
+			else if (aimReg != null)
+			{
+				double angle = GetCollisionAngle((Tank)aimReg, resTick);
+				if (angle < ricochetAngle - Math.PI / 10)
+					move.FireType = FireType.Regular;
+			}
+
+			RotateForSafety();
+
+			if (AliveEnemyCnt() == 1 && AliveTeammateCnt() > 1)
+			{
+				Tank enemy = PickEnemy();
+				MoveTo(enemy, true);
+			}
+
+			bool bonusSaves = BonusSaves(bonus);
+
+			if (world.Tick > runToCornerTime && victim != null && !HaveTimeToTurn(victim) && !bonusSaves)
+				TurnToMovingTank(victim, true);
+
+			//SimulateStuck();
+
+			ManageStuck();
+
+			AvoidBullets();
+		}		
+
+		protected Tank GetWeakest()
+		{
+			double mi = inf;
+			Tank res = null;
+			foreach (var tank in world.Tanks)
+			{
+				if (tank.IsTeammate || IsDead(tank))
+					continue;
+				double test = 0;
+				if (ObstacleBetween(tank, true))
+					test = inf / 2;
+				else
+					test = Math.Min(tank.CrewHealth, tank.HullDurability);
+
+				//test = Math.Min(Math.Abs(tank.GetAngleTo(self)), angleDiff(tank.GetAngleTo(self), Math.PI));
+
+				if (test < mi)
+				{
+					mi = test;
+					res = tank;
+				}
+			}
+			return res;
+		}
+	}
+
+	abstract class AbstractActualStrategy
+	{
+		protected const double inf = 1e20;
+		const int medikitVal = 35;
+		const int repairVal = 50;
+		const double regularBulletFriction = 0.995;
+		const double premiumBulletFriction = 0.99;
+		const double regularBulletStartSpeed = 16.500438538620 / regularBulletFriction;
+		const double premiumBulletStartSpeed = 13.068000645325 / premiumBulletFriction;
+		const double premiumShotDistance = 850;
+		protected const double ricochetAngle = Math.PI / 3;
+		const string myName = "Hohol";
+		readonly double diagonalLen = Math.Sqrt(1280 * 1280 + 800 * 800);
+
+		const int stuckDetectTickCnt = 100;
+		const double stuckDist = 10;
+		const int stuckAvoidTime = 35;
+		protected const int runToCornerTime = 300;
+
+		int dummy;
+
+		protected double[] historyX = new double[10000];
+		protected double[] historyY = new double[10000];
+		double stuckDetectedTick = -1;
+		protected double cornerX, cornerY;
+
+		protected Tank self;
+		protected World world;
+		protected Move move;
+
+		StreamWriter file, teorFile, realFile;
+
+		public abstract void Move(Tank self, World world, Move move);
+
+		protected int AliveTeammateCnt()
+		{
+			int r = 0;
+			foreach (var tank in world.Tanks)
+				if (tank.IsTeammate && !IsDead(tank))
+					r++;
+			return r;
 		}
 
-		void RotateForSafety()
+		protected Tank PickEnemy()
+		{
+			foreach (var tank in world.Tanks)
+				if (!IsDead(tank) && !tank.IsTeammate)
+					return tank;
+			return null;
+		}
+
+		protected interface IEnemyEvaluator
+		{
+			double Evaluate(Tank tank);
+		}
+
+		protected void RotateForSafety()
 		{
 			if (cornerX == -1 || self.GetDistanceTo(cornerX, cornerY) > self.Width)
 				return;
@@ -159,7 +312,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			else if (cornerX < world.Width / 2 && cornerY > world.Height / 2)
 			{
 				if (tank.X + tank.Y < world.Height)
-					TurnTo(world.Width, self.Y);					
+					TurnTo(world.Width, self.Y);
 				else
 					TurnTo(self.X, 0);
 			}
@@ -175,7 +328,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 				if (tank.X < tank.Y + world.Width - world.Height)
 					TurnTo(self.X, 0);
 				else
-					TurnTo(0, self.Y);					
+					TurnTo(0, self.Y);
 			}
 		}
 
@@ -223,8 +376,8 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			double bulletSpeedX = bullet.SpeedX, bulletSpeedY = bullet.SpeedY;
 			double mySpeedX = self.SpeedX, mySpeedY = self.SpeedY;
 
-			double mySpeed = Math.Sqrt(Util.Sqr(self.SpeedX)+Util.Sqr(self.SpeedY));
-			if(IsMovingBackward(self))
+			double mySpeed = Math.Sqrt(Util.Sqr(self.SpeedX) + Util.Sqr(self.SpeedY));
+			if (IsMovingBackward(self))
 				mySpeed *= -1;
 
 			double cosa = Math.Cos(self.Angle);
@@ -251,7 +404,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 				}
 				else if (type == MoveType.accelerationBackward)
 				{
-					mySpeed -= (curMagicSpeed*self.EngineRearPowerFactor + mySpeed) / 20;
+					mySpeed -= (curMagicSpeed * self.EngineRearPowerFactor + mySpeed) / 20;
 					mySpeedX = mySpeed * cosa;
 					mySpeedY = mySpeed * sina;
 				}
@@ -262,13 +415,13 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 				double dy = myY - self.Y;
 				if (Inside(self, bulletX - dx, bulletY - dy, 8))
 					return true;
-				if (TestCollision(bulletX, bulletY, tick,-17,-7) != null)
+				if (TestCollision(bulletX, bulletY, tick, -17, -7) != null)
 					return false;
 			}
 			return false;
-		}		
+		}
 
-		public class BulletComparer: IComparer<Shell>
+		public class BulletComparer : IComparer<Shell>
 		{
 			Tank tank;
 			public BulletComparer(Tank tank)
@@ -290,15 +443,15 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			}
 		}
 
-		void AvoidBullets()
+		protected void AvoidBullets()
 		{
 			List<Shell> bullets = new List<Shell>(world.Shells);
 			bullets.Sort(new BulletComparer(self));
 			//foreach (var bullet in world.Shells)
 			foreach (var bullet in bullets)
-			{				
+			{
 				//if (bullet.PlayerName == myName || bullet.PlayerName == "You")
-//					continue;
+				//					continue;
 				if (Menace(bullet, MoveType.inertion))
 				{
 					if (!Menace(bullet, MoveType.accelerationForward))
@@ -332,7 +485,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			{
 				if (self.GetDistanceTo(world.Width / 2, world.Height / 2) > self.Width)
 				{
-					MoveTo(world.Width / 2, world.Height / 2,true);
+					MoveTo(world.Width / 2, world.Height / 2, true);
 					return;
 				}
 				/*if (Math.Abs(self.GetAngleTo(world.Width/2,world.Height/2)) > 1e-1)
@@ -370,7 +523,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			}
 		}
 
-		bool BonusSaves(Bonus bonus)
+		protected bool BonusSaves(Bonus bonus)
 		{
 			return bonus != null &&
 				(bonus.Type == BonusType.RepairKit && self.HullDurability <= 40 || bonus.Type == BonusType.Medikit && self.CrewHealth <= 40);
@@ -382,7 +535,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			double ty = unit.Y + unit.SpeedY * resTick;
 
 			double beta = Math.Atan2(unit.Height / 2, unit.Width / 2);
-			double alpha = unit.Angle + unit.AngularSpeed*resTick;
+			double alpha = unit.Angle + unit.AngularSpeed * resTick;
 			double D = Math.Sqrt(Util.Sqr(unit.Height / 2) + Util.Sqr(unit.Width / 2));
 			Point t = new Point(tx, ty);
 
@@ -396,7 +549,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			c = c + t;
 			d = d + t;
 
-			Point []res = new Point[4];
+			Point[] res = new Point[4];
 			res[0] = a; // front right
 			res[1] = b; // front left
 			res[2] = c; // back left
@@ -404,7 +557,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			return res;
 		}
 
-		private double GetCollisionAngle(Tank tank, int resTick) //always regular bullet
+		protected double GetCollisionAngle(Tank tank, int resTick) //always regular bullet
 		{
 			double bulletSpeed = regularBulletStartSpeed;
 			double angle = self.Angle + self.TurretRelativeAngle;
@@ -420,23 +573,23 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 				dx *= regularBulletFriction;
 				dy *= regularBulletFriction;
 				bulletX += dx;
-				bulletY += dy;				
+				bulletY += dy;
 				bulletSpeed *= regularBulletFriction;
 			}
-			
-			Point me = new Point(self.X,self.Y);
-			Point bullet = new Point(bulletX,bulletY);
 
-			Point []ar = GetBounds(tank, resTick);
+			Point me = new Point(self.X, self.Y);
+			Point bullet = new Point(bulletX, bulletY);
+
+			Point[] ar = GetBounds(tank, resTick);
 
 			Point a = ar[0], b = ar[1], c = ar[2], d = ar[3];
 
-			double va = Math.Atan2(me.y-bullet.y,me.x-bullet.x);
+			double va = Math.Atan2(me.y - bullet.y, me.x - bullet.x);
 
 			if (Point.Intersect(a, b, bullet, me))
 				return angleDiff(va, tank.Angle);
 			if (Point.Intersect(b, c, bullet, me))
-				return angleDiff(va,tank.Angle-Math.PI/2);
+				return angleDiff(va, tank.Angle - Math.PI / 2);
 			if (Point.Intersect(c, d, bullet, me))
 				return angleDiff(va, tank.Angle - Math.PI);
 			if (Point.Intersect(d, a, bullet, me))
@@ -448,9 +601,9 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 		double angleDiff(double a, double b)
 		{
 			while (a < b - Math.PI)
-				a += 2*Math.PI;
+				a += 2 * Math.PI;
 			while (b < a - Math.PI)
-				b += 2*Math.PI;
+				b += 2 * Math.PI;
 			return Math.Abs(a - b);
 		}
 
@@ -459,7 +612,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			return self.PremiumShellCount > 0 && self.GetDistanceTo(tank) <= premiumShotDistance;
 		}
 
-		Tank GetNearest(double x, double y)
+		protected Tank GetNearest(double x, double y)
 		{
 			Tank res = null;
 			double mi = inf;
@@ -477,12 +630,12 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			return res;
 		}
 
-		bool HaveTimeToTurn(Unit unit)
+		protected bool HaveTimeToTurn(Unit unit)
 		{
 			return self.RemainingReloadingTime >= TimeToTurn(unit) - 5;
 		}
 
-		void TurnToMovingTank(Tank tank, bool mustRotateTrucks)
+		protected void TurnToMovingTank(Tank tank, bool mustRotateTrucks)
 		{
 			double t = self.GetDistanceTo(tank) / (WillUsePremiumBullet(tank) ? premiumBulletStartSpeed : regularBulletStartSpeed);
 			double victimX = tank.X + tank.SpeedX * t;
@@ -520,7 +673,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			return false;
 		}
 
-		Tank GetAlmostDead()
+		protected Tank GetAlmostDead()
 		{
 			int damage = (self.PremiumShellCount > 0 ? 35 : 20);
 			Tank res = null;
@@ -557,7 +710,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			double h = unit.Height / 2 + precision;
 			double lx = -w, rx = w;
 			double ly = -h, ry = h;
-			if (enemy && Math.Sqrt(Util.Sqr(unit.SpeedX)+Util.Sqr(unit.SpeedY)) > 1)
+			if (enemy && Math.Sqrt(Util.Sqr(unit.SpeedX) + Util.Sqr(unit.SpeedY)) > 1)
 			{
 				if (IsMovingBackward(unit))
 				{
@@ -572,9 +725,9 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 				y >= ly && y <= ry;
 			//return x >= -w && x <= w &&
 			//	   y >= -h && y <= h;
-		}	
+		}
 
-		void SimulateStuck()
+		protected void SimulateStuck()
 		{
 			if (world.Tick >= 100)
 				MoveTo(10000, self.Y, true);
@@ -583,8 +736,9 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			return;
 		}
 
-		void ManageStuck()
+		protected void ManageStuck()
 		{
+			return;
 			if (stuckDetectedTick != -1 && world.Tick - stuckDetectedTick > stuckAvoidTime)
 				stuckDetectedTick = -1;
 			if (stuckDetectedTick == -1 && Stuck())
@@ -606,6 +760,17 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 
 		bool Stuck()
 		{
+			double mi = inf;
+			foreach (var tank in world.Tanks)
+				if (tank.Id != self.Id)
+					mi = Math.Min(mi, self.GetDistanceTo(tank));
+			mi = Math.Min(mi, self.X);
+			mi = Math.Min(mi, self.Y);
+			mi = Math.Min(mi, world.Width - self.X);
+			mi = Math.Min(mi, world.Height - self.Y);
+			if (mi > self.Width/2 + 5)
+				return false;
+
 			double ma = 0;
 			for (int i = world.Tick - stuckDetectTickCnt; i < world.Tick; i++)
 			{
@@ -615,24 +780,24 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			}
 			if (ma > stuckDist)
 				return false;
-			
+
 			if (cornerX >= 0 && self.GetDistanceTo(cornerX, cornerY) <= self.Width)
 				return false;
 			return true;
 		}
 
-		void MoveBackwards(out double resX, out double resY)
+		protected void MoveBackwards(out double resX, out double resY)
 		{
 			double x, y;
 			double r = 0;// self.Width / 2;
 			if (self.X < world.Width / 2)
 				x = r;
 			else
-				x = world.Width-r;
+				x = world.Width - r;
 			if (self.Y < world.Height / 2 + 15)
 				y = r;
 			else
-				y = world.Height-r;
+				y = world.Height - r;
 			resX = x;
 			resY = y;
 
@@ -703,7 +868,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 					precision = obstaclePrecision;
 				}
 
-				if (Inside(unit, x - dx, y - dy, precision,enemy))
+				if (Inside(unit, x - dx, y - dy, precision, enemy))
 					return unit;
 			}
 			return null;
@@ -711,16 +876,16 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 
 		Unit TestCollision(double x, double y, int tick, double enemyPrecision, double obstaclePrecision)
 		{
-			Unit r = TestCollision(world.Bonuses, x, y, tick,enemyPrecision,obstaclePrecision);
+			Unit r = TestCollision(world.Bonuses, x, y, tick, enemyPrecision, obstaclePrecision);
 			if (r != null)
 				return r;
-			r = TestCollision(world.Tanks, x, y, tick,enemyPrecision,obstaclePrecision);
+			r = TestCollision(world.Tanks, x, y, tick, enemyPrecision, obstaclePrecision);
 			if (r != null)
 				return r;
 			return null;
 		}
 
-		Unit EmulateShot(bool premium, out int resTick)
+		protected Unit EmulateShot(bool premium, out int resTick)
 		{
 			double bulletSpeed, friction;
 			if (premium)
@@ -745,7 +910,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			double sumDist = 0;
 			double needDist = premium ? premiumShotDistance : diagonalLen;
 
-			for (int tick = 0;; tick++)
+			for (int tick = 0; ; tick++)
 			{
 				Unit unit = TestCollision(x, y, tick, -17, 10);
 				if (unit != null)
@@ -785,8 +950,8 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 		double DistanceToBorder()
 		{
 			return Math.Min(
-					Math.Min(self.X,self.Y),
-					Math.Min(world.Width-self.X,world.Height-self.Y)
+					Math.Min(self.X, self.Y),
+					Math.Min(world.Width - self.X, world.Height - self.Y)
 				);
 		}
 
@@ -808,10 +973,10 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 				return;
 			}
 
-			Point []ar = GetBounds(self,0);
+			Point[] ar = GetBounds(self, 0);
 
-			Point p = new Point(x,y);
-			if (Point.wp(ar[3], ar[0], p) <= 0 && Point.wp(ar[2], ar[1],p) >= 0)
+			Point p = new Point(x, y);
+			if (Point.wp(ar[3], ar[0], p) <= 0 && Point.wp(ar[2], ar[1], p) >= 0)
 			{
 				const double wtf = 0.1;
 				if (self.AngularSpeed > wtf)
@@ -881,7 +1046,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			}
 		}
 
-		void MoveTo(Unit unit, bool forward)
+		protected void MoveTo(Unit unit, bool forward)
 		{
 			MoveTo(unit.X, unit.Y, forward);
 		}
@@ -894,7 +1059,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			return null;
 		}
 
-		bool IsDead(Tank tank)
+		protected bool IsDead(Tank tank)
 		{
 			return tank.CrewHealth <= 0 || tank.HullDurability <= 0 || tank.PlayerName == "EmptyPlayer"/**/;
 		}
@@ -908,7 +1073,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			return res;
 		}
 
-		Tank GetVictim()
+		protected Tank GetVictim(/*Func<double,Tank> eval*/)
 		{
 			double mi = inf;
 			Tank res = null;
@@ -935,7 +1100,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			return res;
 		}
 
-		bool ObstacleBetween(Unit unit, bool bonusIsObstacle)
+		protected bool ObstacleBetween(Unit unit, bool bonusIsObstacle)
 		{
 			const int stepCnt = 100;
 			double dx = (unit.X - self.X) / stepCnt;
@@ -960,7 +1125,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			return false;
 		}
 
-		int AliveEnemyCnt()
+		protected int AliveEnemyCnt()
 		{
 			int r = 0;
 			foreach (Tank tank in world.Tanks)
@@ -976,8 +1141,8 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			if (BonusSaves(bonus) && self.GetDistanceTo(bonus) <= self.Width * 2)
 				return false;
 
-			foreach(var e1 in world.Tanks)
-				foreach(var e2 in world.Tanks)
+			foreach (var e1 in world.Tanks)
+				foreach (var e2 in world.Tanks)
 					if (e1.Id != e2.Id && !e1.IsTeammate && !e2.IsTeammate && !IsDead(e1) && !IsDead(e2))
 					{
 						if (Point.Intersect(new Point(self), new Point(bonus), new Point(e1), new Point(e2)))
@@ -1003,7 +1168,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 				return -inf;
 			int enemyCnt = AliveEnemyCnt();
 			if (enemyCnt == 0) // possible only with EmptyPlayer
-				enemyCnt++;			
+				enemyCnt++;
 			double dist;
 			if (forward)
 				dist = self.GetDistanceTo(bonus) + Math.Abs(self.GetAngleTo(bonus)) / Math.PI * world.Width * 0.7 / enemyCnt;
@@ -1052,7 +1217,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			return r + (10000 - dist);
 		}
 
-		Bonus GetBonus(out bool forward)
+		protected Bonus GetBonus(out bool forward)
 		{
 			double ma = 0;
 			Bonus res = null;
@@ -1081,7 +1246,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 		{
 			k = (y1 - y2) / (x1 - x2);
 			b = y1 - k * x1;
-		}		
+		}
 	}
 }
 
@@ -1098,7 +1263,7 @@ struct Point
 		this.x = unit.X;
 		this.y = unit.Y;
 	}
-	static public Point operator - (Point a, Point b)
+	static public Point operator -(Point a, Point b)
 	{
 		return new Point(a.x - b.x, a.y - b.y);
 	}
