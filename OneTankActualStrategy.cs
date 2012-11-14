@@ -9,7 +9,7 @@ class OneTankActualStrategy : ActualStrategy
 	override public void Move(Tank self, World world, Move move)
 	{
 		this.self = self;
-		this.world = world;
+		ActualStrategy.world = world;
 		this.move = move;
 
 		historyX[world.Tick] = self.X;
@@ -22,7 +22,7 @@ class OneTankActualStrategy : ActualStrategy
 		}/**/
 
 		bool forward;
-		Bonus bonus = GetBonus(out forward);
+		Bonus bonus = GetBonus(self, out forward);
 		//bonus = null;
 		Tank victim = null;
 
@@ -84,7 +84,7 @@ class OneTankActualStrategy : ActualStrategy
 
 		RotateForSafety();
 
-		bool bonusSaves = BonusSaves(bonus);
+		bool bonusSaves = BonusSaves(self, bonus);
 
 		if (world.Tick > runToCornerTime && victim != null && !HaveTimeToTurn(victim) && !bonusSaves)
 			TurnToMovingTank(victim, true);

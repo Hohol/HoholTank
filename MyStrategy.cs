@@ -33,7 +33,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 	}
 }
 
-struct Point
+class Point
 {
 	public double x, y;
 	public Point(double x = 0, double y = 0)

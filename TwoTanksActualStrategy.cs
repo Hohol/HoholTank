@@ -6,29 +6,54 @@ using System.IO;
 class TwoTankskActualStrategy : ActualStrategy
 {
 	Tank teammate;
+	Tank moreImportant;
+	OneTankActualStrategy myOtherSelf = new OneTankActualStrategy();
 
 	override public void Move(Tank self, World world, Move move)
 	{
 		this.self = self;
-		this.world = world;
+		ActualStrategy.world = world;
 		this.move = move;
 
 		historyX[world.Tick] = self.X;
 		historyY[world.Tick] = self.Y;
+		myOtherSelf.historyX[world.Tick] = self.X;
+		myOtherSelf.historyY[world.Tick] = self.Y;
 
 		foreach (var tank in world.Tanks)
 			if (tank.Id != self.Id && tank.IsTeammate)
 				teammate = tank;
 
-		/*if (AliveEnemyCnt() == 0)
+		if (IsDead(teammate))
 		{
-			Experiment();
+			myOtherSelf.Move(self, world, move);
 			return;
-		}/**/
+		}
+
+		if (self.TeammateIndex == 0 || IsDead(teammate))
+			moreImportant = self;
+		else
+			moreImportant = teammate;
+
+		/*int myHP = Math.Min(self.CrewHealth, self.HullDurability);
+		int teammateHP = Math.Min(teammate.CrewHealth, teammate.HullDurability);
+		if (IsDead(teammate) || myHP < teammateHP || myHP == teammateHP && self.TeammateIndex == 0)
+			moreImportant = self;
+		else
+			moreImportant = teammate;*/
 
 		bool forward;
-		Bonus bonus = GetBonus(out forward);
-		//bonus = null;
+		Bonus bonus;
+		if (self == moreImportant)
+		{
+			bonus = GetBonus(self, out forward);
+		}
+		else
+		{
+			Bonus forbidden = GetBonus(teammate, out forward);
+			bonus = GetBonus(self, out forward, forbidden);
+		}
+
 		Tank victim = GetWithSmallestDistSum();
 
 		bool shootOnlyToVictim = false;
@@ -89,7 +114,7 @@ class TwoTankskActualStrategy : ActualStrategy
 			MoveTo(enemy, true);
 		}
 
-		bool bonusSaves = BonusSaves(bonus);
+		bool bonusSaves = BonusSaves(self, bonus);
 
 		if (world.Tick > runToCornerTime && victim != null && !HaveTimeToTurn(victim) && !bonusSaves)
 			TurnToMovingTank(victim, true);
@@ -100,6 +125,12 @@ class TwoTankskActualStrategy : ActualStrategy
 
 		AvoidBullets();
 	}
+
+	/*override protected void MoveBackwards(out double resX, out double resY)
+	{
+		resX = 0;
+		resY = 0;
+	}*/
 
 	Tank GetWithSmallestDistSum()
 	{
@@ -114,7 +145,7 @@ class TwoTankskActualStrategy : ActualStrategy
 				test += TimeToTurn(teammate, tank);
 			if (test < 0)
 				test = inf / 2;
-			if (ObstacleBetween(tank, true))
+			if (ObstacleBetween(self,tank, true))
 				test = inf / 2;
 			double flyTime = (self.GetDistanceTo(tank) - self.VirtualGunLength) / regularBulletStartSpeed;
 			test += flyTime;
