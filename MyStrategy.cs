@@ -7,7 +7,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 {
 	public sealed class MyStrategy : IStrategy
 	{
-		AbstractActualStrategy strat;
+		ActualStrategy strat;
 		public TankType SelectTank(int tankIndex, int teamSize)
 		{
 			/*#if TEDDY_BEARS

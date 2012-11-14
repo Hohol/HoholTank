@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk.Model;
 using System.IO;
 
-class TwoTankskActualStrategy : AbstractActualStrategy
+class TwoTankskActualStrategy : ActualStrategy
 {
 	Tank teammate;
 

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk.Model;
 using System.IO;
 
-class OneTankActualStrategy : AbstractActualStrategy
+class OneTankActualStrategy : ActualStrategy
 {
 	const int firstShootTick = 4;
 	override public void Move(Tank self, World world, Move move)
