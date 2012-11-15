@@ -229,7 +229,7 @@ abstract class ActualStrategy
 		return tx * unit.SpeedX + ty * unit.SpeedY < 0;
 	}
 
-	bool Menace(Shell bullet, MoveType type)
+	bool Menace(Shell bullet, MoveType type, out double resX)
 	{
 		double friction;
 		if (bullet.Type == ShellType.Regular)
@@ -280,6 +280,12 @@ abstract class ActualStrategy
 
 			for (int i = 0; i < 4; i++)
 			{
+				bounds[i].x += mySpeedX;
+				bounds[i].y += mySpeedY;
+			}
+
+			for (int i = 0; i < 4; i++)
+			{
 				double shiftX = 0;
 				double shiftY = 0;
 				if (bounds[i].x < 0)
@@ -294,19 +300,21 @@ abstract class ActualStrategy
 				myY += shiftY;
 				for (int j = 0; j < 4; j++)
 				{
-					bounds[i].x += shiftX;
-					bounds[i].y += shiftY;
+					bounds[j].x += shiftX;
+					bounds[j].y += shiftY;
 				}
 			}
 
 			double dx = myX - self.X;
 			double dy = myY - self.Y;
-			if (Inside(self, bulletX - dx, bulletY - dy, 8))
+			double dummy;
+			if (Inside(self, bulletX - dx, bulletY - dy, 8,out resX, out dummy))
 				return true;
 			double dummyX, dummyY;
 			if (TestCollision(bulletX, bulletY, tick, -17, -7, out dummyX, out dummyY) != null)
 				return false;
 		}
+		resX = double.NaN;
 		return false;
 	}
 
@@ -336,24 +344,40 @@ abstract class ActualStrategy
 	{
 		List<Shell> bullets = new List<Shell>(world.Shells);
 		bullets.Sort(new BulletComparer(self));
-		//foreach (var bullet in world.Shells)
 		foreach (var bullet in bullets)
 		{
-			//if (bullet.PlayerName == myName || bullet.PlayerName == "You")
-			//					continue;
-			if (Menace(bullet, MoveType.inertion))
+			double resX;
+			if (Menace(bullet, MoveType.inertion,out resX))
 			{
-				if (!Menace(bullet, MoveType.accelerationForward))
+				if (resX <= 0)
 				{
-					move.LeftTrackPower = 1;
-					move.RightTrackPower = 1;
-					return;
+					if (!Menace(bullet, MoveType.accelerationForward, out resX))
+					{
+						move.LeftTrackPower = 1;
+						move.RightTrackPower = 1;
+						return;
+					}
+					if (!Menace(bullet, MoveType.accelerationBackward, out resX))
+					{
+						move.LeftTrackPower = -1;
+						move.RightTrackPower = -1;
+						return;
+					}
 				}
-				if (!Menace(bullet, MoveType.accelerationBackward))
+				else
 				{
-					move.LeftTrackPower = -1;
-					move.RightTrackPower = -1;
-					return;
+					if (!Menace(bullet, MoveType.accelerationBackward, out resX))
+					{
+						move.LeftTrackPower = -1;
+						move.RightTrackPower = -1;
+						return;
+					}
+					if (!Menace(bullet, MoveType.accelerationForward, out resX))
+					{
+						move.LeftTrackPower = 1;
+						move.RightTrackPower = 1;
+						return;
+					}					
 				}
 			}
 		}

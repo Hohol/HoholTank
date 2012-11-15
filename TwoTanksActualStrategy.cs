@@ -60,9 +60,6 @@ class TwoTankskActualStrategy : ActualStrategy
 			bonus = GetBonus(self, out forward, forbidden);
 		}
 
-		if (AliveEnemyCnt() == 4)
-			bonus = null;
-
 		Tank victim = GetWithSmallestDistSum();
 
 		bool shootOnlyToVictim = false;
@@ -188,9 +185,9 @@ class TwoTankskActualStrategy : ActualStrategy
 			else if (x < world.Width / 2 && y > world.Height / 2)
 			{
 				if (self.X < teammate.X)
-					MoveTo(firstX, world.Height-firstY, 0, 1);
+					MoveTo(firstX, world.Height-firstY, 0, -1);
 				else
-					MoveTo(secondX, world.Height-secondY, 0, 1);
+					MoveTo(secondX, world.Height-secondY, 0, -1);
 			}
 			else if (x > world.Width / 2 && y < world.Height / 2)
 			{
@@ -202,9 +199,9 @@ class TwoTankskActualStrategy : ActualStrategy
 			else
 			{
 				if (self.X > teammate.X)
-					MoveTo(world.Width - firstX, world.Height-firstY, 0, 1);
+					MoveTo(world.Width - firstX, world.Height-firstY, 0, -1);
 				else
-					MoveTo(world.Width - secondX, world.Height-secondY, 0, 1);
+					MoveTo(world.Width - secondX, world.Height-secondY, 0, -1);
 			}
 		}
 	}
