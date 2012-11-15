@@ -62,6 +62,10 @@ class Point
 	{
 		return wp(b - a, c - a);
 	}
+	static public double scalar(Point a, Point b)
+	{
+		return a.x * b.x + a.y * b.y;
+	}
 	static public bool Intersect(Point a, Point b, Point c, Point d)
 	{
 		return Intersect(a.x, b.x, c.x, d.x) && Intersect(a.y, b.y, c.y, d.y) &&

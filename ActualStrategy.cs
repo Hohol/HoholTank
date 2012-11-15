@@ -38,6 +38,22 @@ abstract class ActualStrategy
 
 	public abstract void Move(Tank self, World world, Move move);
 
+	protected void MoveTo(double x, double y, double dx, double dy)
+	{
+		if (self.GetDistanceTo(x, y) <= self.Height / 2)
+			TurnTo(self.X+dx,self.Y+dy);
+		else
+		{
+			Point o = new Point(x, y);
+			Point me = new Point(self.X, self.Y);
+			Point d = new Point(dx, dy);
+			if (Point.scalar(o - me, d) > 0)
+				MoveTo(x, y, true);
+			else
+				MoveTo(x, y, false);
+		}
+	}
+
 	protected bool BadAim(Unit aim, Tank victim, bool shootOnlyToVictim)
 	{
 		if (aim == null)
