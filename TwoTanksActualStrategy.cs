@@ -2,12 +2,14 @@
 using System.Collections.Generic;
 using Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk.Model;
 using System.IO;
+using System.Linq;
 
 class TwoTankskActualStrategy : ActualStrategy
 {
 	Tank teammate;
 	Tank moreImportant;
 	OneTankActualStrategy myOtherSelf = new OneTankActualStrategy();
+	List<Tank> enemies;
 
 	override public void Move(Tank self, World world, Move move)
 	{
@@ -17,6 +19,10 @@ class TwoTankskActualStrategy : ActualStrategy
 
 		historyX[world.Tick] = self.X;
 		historyY[world.Tick] = self.Y;
+		enemies = new List<Tank>();
+		foreach (Tank tank in world.Tanks)
+			if (!IsDead(tank) && !tank.IsTeammate)
+				enemies.Add(tank);
 		myOtherSelf.historyX[world.Tick] = self.X;
 		myOtherSelf.historyY[world.Tick] = self.Y;
 
@@ -54,6 +60,9 @@ class TwoTankskActualStrategy : ActualStrategy
 			bonus = GetBonus(self, out forward, forbidden);
 		}
 
+		if (AliveEnemyCnt() == 4)
+			bonus = null;
+
 		Tank victim = GetWithSmallestDistSum();
 
 		bool shootOnlyToVictim = false;
@@ -64,7 +73,7 @@ class TwoTankskActualStrategy : ActualStrategy
 		}
 		else
 		{
-			MoveBackwards(out cornerX, out cornerY);
+			MoveBackwards();
 		}
 		if (victim != null)
 			TurnToMovingTank(victim, false);
@@ -106,10 +115,8 @@ class TwoTankskActualStrategy : ActualStrategy
 
 		RotateForSafety();
 
-		//if (AliveEnemyCnt() == 1)
 		if (world.Tick > runToCornerTime && AliveEnemyCnt() <= 3)
 		{
-			//var tank = PickEnemy();
 			var tank = GetMostAngryEnemy();
 			if (tank != null)
 				StayPerpendicular(tank);
@@ -127,17 +134,87 @@ class TwoTankskActualStrategy : ActualStrategy
 		if (world.Tick > runToCornerTime && victim != null && !HaveTimeToTurn(victim) && !bonusSaves)
 			TurnToMovingTank(victim, true);
 
-		//SimulateStuck();
-
 		ManageStuck();
 
 		AvoidBullets();
+	}
+
+	bool LeftMost()
+	{
+		var a = enemies.OrderBy(tank => tank.X).ToArray();
+		return a.Length != 0 && Math.Max(self.X, teammate.X) < a[0].X - 60;
+	}
+
+	bool RightMost()
+	{
+		var a = enemies.OrderBy(tank => world.Width-tank.X).ToArray();
+		return a.Length != 0 && Math.Min(self.X, teammate.X) > a[0].X + 60;
+	}
+
+	void MoveBackwards()
+	{
+		double firstX = self.Height*1.5;// nearest to vertical wall
+		double firstY = self.Width*3; 
+		double secondX = self.Height*2+15;
+		double secondY = self.Width*1.5;
+		double vertD = self.Width / 2 + self.Height / 2;
+		if (LeftMost())
+		//if(false)
+		{
+			if (self.Y < teammate.Y)
+				MoveTo(firstX, vertD, 0, 1);
+			else
+				MoveTo(firstX, world.Height -vertD, 0, -1);
+		}
+		else if (RightMost())
+		//else if(false)
+		{
+			if (self.Y < teammate.Y)
+				MoveTo(world.Width - firstX, vertD, 0, 1);
+			else
+				MoveTo(world.Width - firstX, world.Height - vertD, 0, -1);
+		}
+		else
+		{
+			double x = (self.X + teammate.X) / 2;
+			double y = (self.Y + teammate.Y) / 2;
+			if (x < world.Width / 2 && y < world.Height / 2)
+			{
+				if (self.X < teammate.X)
+					MoveTo(firstX, firstY, 0, 1);
+				else
+					MoveTo(secondX, secondY, 0, 1);
+			}
+			else if (x < world.Width / 2 && y > world.Height / 2)
+			{
+				if (self.X < teammate.X)
+					MoveTo(firstX, world.Height-firstY, 0, 1);
+				else
+					MoveTo(secondX, world.Height-secondY, 0, 1);
+			}
+			else if (x > world.Width / 2 && y < world.Height / 2)
+			{
+				if (self.X > teammate.X)
+					MoveTo(world.Width - firstX, firstY, 0, 1);
+				else
+					MoveTo(world.Width - secondX, secondY, 0, 1);
+			}
+			else
+			{
+				if (self.X > teammate.X)
+					MoveTo(world.Width - firstX, world.Height-firstY, 0, 1);
+				else
+					MoveTo(world.Width - secondX, world.Height-secondY, 0, 1);
+			}
+		}
 	}
 
 	bool BadAim(Unit aim, Tank victim, bool shootOnlyToVictim, double x, double y)
 	{
 		if (BadAim(aim, victim, shootOnlyToVictim))
 			return true;
+		if (self.GetDistanceTo(aim) < self.Width * 3)
+			return false;
 		if (self.TeammateIndex == 0)
 		{
 			if (x < 0)
@@ -167,7 +244,8 @@ class TwoTankskActualStrategy : ActualStrategy
 				continue;
 
 			double test = self.GetDistanceTo(tank) + teammate.GetDistanceTo(tank);
-
+			if (ObstacleBetween(self, tank, true))
+				test = inf / 2;
 			/*
 			double test = TimeToTurn(self, tank);
 			if (!IsDead(teammate))

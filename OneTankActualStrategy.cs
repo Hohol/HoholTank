@@ -76,20 +76,17 @@ class OneTankActualStrategy : ActualStrategy
 
 		RotateForSafety();
 
-		//if(AliveEnemyCnt() == 0)
-		MoveTo(self.Height / 2 + 5, self.Width * 1.5, 0, 1);
-
 		bool bonusSaves = BonusSaves(self, bonus);
 
 		if (world.Tick > runToCornerTime && victim != null && !HaveTimeToTurn(victim) && !bonusSaves)
 			TurnToMovingTank(victim, true);
 
-		/*if (world.Tick > runToCornerTime && AliveEnemyCnt() <= 3)
+		if (world.Tick > runToCornerTime && AliveEnemyCnt() <= 3)
 		{
 			var tank = GetMostAngryEnemy();
 			if (tank != null)
 				StayPerpendicular(tank);
-		}*/
+		}
 
 
 		ManageStuck();
@@ -100,6 +97,8 @@ class OneTankActualStrategy : ActualStrategy
 	{
 		if(BadAim(aim,victim,shootOnlyToVictim))
 			return true;
+		if (self.GetDistanceTo(aim) < self.Width * 3)
+			return false;
 		if(IsMovingBackward(victim))
 		{
 			if(x < 0)

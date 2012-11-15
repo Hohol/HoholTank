@@ -66,6 +66,10 @@ class Point
 	{
 		return a.x * b.x + a.y * b.y;
 	}
+	static public double Atan2(Point a)
+	{
+		return Math.Atan2(a.y, a.x);
+	}
 	static public bool Intersect(Point a, Point b, Point c, Point d)
 	{
 		return Intersect(a.x, b.x, c.x, d.x) && Intersect(a.y, b.y, c.y, d.y) &&

@@ -29,6 +29,7 @@ abstract class ActualStrategy
 	public double[] historyY = new double[10000];
 	double stuckDetectedTick = -1;
 	protected double cornerX, cornerY;
+	protected double targetX, targetY;
 
 	protected Tank self;
 	static protected World world;
@@ -40,6 +41,8 @@ abstract class ActualStrategy
 
 	protected void MoveTo(double x, double y, double dx, double dy)
 	{
+		targetX = x;
+		targetY = y;
 		if (self.GetDistanceTo(x, y) <= self.Height / 2)
 			TurnTo(self.X+dx,self.Y+dy);
 		else
@@ -47,8 +50,12 @@ abstract class ActualStrategy
 			Point o = new Point(x, y);
 			Point me = new Point(self.X, self.Y);
 			Point d = new Point(dx, dy);
-			if (Point.scalar(o - me, d) > 0)
+			Point oMe = o - me;
+
+			if (Point.scalar(oMe, d) > 0/* && self.GetDistanceTo(x,y) > self.Width*/)
+			{
 				MoveTo(x, y, true);
+			}
 			else
 				MoveTo(x, y, false);
 		}
@@ -198,7 +205,7 @@ abstract class ActualStrategy
 		{
 			if (tank.IsTeammate || IsDead(tank) || self.GetDistanceTo(tank) <= stayPerpendicularDistance)
 				continue;
-			if (ObstacleBetween(self, tank, true))
+			if (ObstacleBetween(self, tank, false))
 				continue;
 			double test = Math.Abs(tank.GetTurretAngleTo(self));
 			if (test < mi)
@@ -243,6 +250,8 @@ abstract class ActualStrategy
 
 		double curMagicSpeed = (self.CrewHealth + 100.0) * 0.0197916745;
 
+		Point[] bounds = GetBounds(self, 0);
+
 		for (int tick = 0; tick < 100; tick++)
 		{
 			bulletSpeedX *= friction;
@@ -268,6 +277,27 @@ abstract class ActualStrategy
 			}
 			myX += mySpeedX;
 			myY += mySpeedY;
+
+			for (int i = 0; i < 4; i++)
+			{
+				double shiftX = 0;
+				double shiftY = 0;
+				if (bounds[i].x < 0)
+					shiftX = -bounds[i].x;
+				if (bounds[i].x > world.Width)
+					shiftX = world.Width - bounds[i].x;
+				if (bounds[i].y < 0)
+					shiftY = -bounds[i].y;
+				if (bounds[i].y > world.Height)
+					shiftY = world.Height - bounds[i].y;
+				myX += shiftX;
+				myY += shiftY;
+				for (int j = 0; j < 4; j++)
+				{
+					bounds[i].x += shiftX;
+					bounds[i].y += shiftY;
+				}
+			}
 
 			double dx = myX - self.X;
 			double dy = myY - self.Y;
@@ -617,11 +647,10 @@ abstract class ActualStrategy
 		foreach (var tank in world.Tanks)
 			if (tank.Id != self.Id)
 				mi = Math.Min(mi, self.GetDistanceTo(tank));
-		mi = Math.Min(mi, self.X);
-		mi = Math.Min(mi, self.Y);
-		mi = Math.Min(mi, world.Width - self.X);
-		mi = Math.Min(mi, world.Height - self.Y);
+		mi = Math.Min(mi, DistanceToBorder());
 		if (mi > self.Width / 2 + 5)
+			return false;
+		if (self.GetDistanceTo(targetX, targetY) < self.Height)
 			return false;
 
 		double ma = 0;
@@ -814,14 +843,14 @@ abstract class ActualStrategy
 			);
 	}
 
-	void MoveTo(double x, double y, bool forward, Point pointToWatch = null)
+	void MoveTo(double x, double y, bool forward)
 	{
-		if (pointToWatch == null)
-			pointToWatch = new Point(world.Width / 2, world.Height / 2);
+		targetX = x;
+		targetY = y;
 		double r = Math.Min(self.Width, self.Height) / 2;
 		if (self.GetDistanceTo(x, y) < r)
 		{
-			TurnTo(pointToWatch);
+			TurnTo(world.Width/2,world.Height/2);
 			return;
 		}
 
