@@ -70,8 +70,15 @@ class TwoTankskActualStrategy : ActualStrategy
 			TurnToMovingTank(victim, false);
 
 		int dummy, resTick;
-		Unit aimPrem = self.PremiumShellCount > 0 ? EmulateShot(true, out dummy) : null;
-		Unit aimReg = EmulateShot(false, out resTick);
+		double premResX = double.NaN, premResY = double.NaN;
+		double regResX, regResY;
+		Unit aimPrem = self.PremiumShellCount > 0 ? EmulateShot(true, out dummy, out premResX, out premResY) : null;
+		Unit aimReg = EmulateShot(false, out resTick, out regResX, out regResY);
+
+		if (BadAim(aimReg, victim, shootOnlyToVictim, regResX, regResY))
+			aimReg = null;
+		if (BadAim(aimPrem, victim, shootOnlyToVictim, premResX, premResY))
+			aimPrem = null;
 
 		if (aimPrem != null)
 		{
@@ -111,7 +118,8 @@ class TwoTankskActualStrategy : ActualStrategy
 		if (AliveEnemyCnt() == 1 && AliveTeammateCnt() > 1)
 		{
 			Tank enemy = PickEnemy();
-			MoveTo(enemy, true);
+			if(self.GetDistanceTo(enemy) > 3*self.Width)
+				MoveTo(enemy, true);
 		}
 
 		bool bonusSaves = BonusSaves(self, bonus);
@@ -124,6 +132,23 @@ class TwoTankskActualStrategy : ActualStrategy
 		ManageStuck();
 
 		AvoidBullets();
+	}
+
+	bool BadAim(Unit aim, Tank victim, bool shootOnlyToVictim, double x, double y)
+	{
+		if (BadAim(aim, victim, shootOnlyToVictim))
+			return true;
+		if (self.TeammateIndex == 0)
+		{
+			if (x < 0)
+				return true;
+		}
+		else
+		{
+			if (x > 0)
+				return true;
+		}
+		return false;
 	}
 
 	/*override protected void MoveBackwards(out double resX, out double resY)
@@ -140,6 +165,10 @@ class TwoTankskActualStrategy : ActualStrategy
 		{
 			if (tank.IsTeammate || IsDead(tank))
 				continue;
+
+			double test = self.GetDistanceTo(tank) + teammate.GetDistanceTo(tank);
+
+			/*
 			double test = TimeToTurn(self, tank);
 			if (!IsDead(teammate))
 				test += TimeToTurn(teammate, tank);
@@ -154,9 +183,7 @@ class TwoTankskActualStrategy : ActualStrategy
 				flyTime = (teammate.GetDistanceTo(tank) - teammate.VirtualGunLength) / regularBulletStartSpeed;
 				test += flyTime;
 			}
-
-			//test = Math.Min(Math.Abs(tank.GetAngleTo(self)), angleDiff(tank.GetAngleTo(self), Math.PI));
-
+			*/
 			if (test < mi)
 			{
 				mi = test;
@@ -164,5 +191,32 @@ class TwoTankskActualStrategy : ActualStrategy
 			}
 		}
 		return res;
+	}
+
+	static bool Inside(Unit unit, double x, double y, double precision, bool enemy = false)
+	{
+		double d = unit.GetDistanceTo(x, y);
+		double angle = unit.GetAngleTo(x, y);
+		x = d * Math.Cos(angle);
+		y = d * Math.Sin(angle);
+		double w = unit.Width / 2 + precision;
+		double h = unit.Height / 2 + precision;
+		double lx = -w, rx = w;
+		double ly = -h, ry = h;
+		if (enemy && Math.Sqrt(Util.Sqr(unit.SpeedX) + Util.Sqr(unit.SpeedY)) > 1)
+		{
+			if (IsMovingBackward(unit))
+			{
+				lx = 0;
+			}
+			else
+			{
+				rx = 0;
+			}
+		}
+		return x >= lx && x <= rx &&
+			y >= ly && y <= ry;
+		//return x >= -w && x <= w &&
+		//	   y >= -h && y <= h;
 	}
 }

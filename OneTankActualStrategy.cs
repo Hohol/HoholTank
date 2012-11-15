@@ -49,23 +49,15 @@ class OneTankActualStrategy : ActualStrategy
 			TurnToMovingTank(victim, false);
 
 		int dummy, resTick;
-		Unit aimPrem = self.PremiumShellCount > 0 ? EmulateShot(true, out dummy) : null;
-		Unit aimReg = EmulateShot(false, out resTick);
+		double premResX = double.NaN, premResY = double.NaN;
+		double regResX, regResY;
+		Unit aimPrem = self.PremiumShellCount > 0 ? EmulateShot(true, out dummy, out premResX,out premResY) : null;
+		Unit aimReg = EmulateShot(false, out resTick, out regResX, out regResY);
 
-		if (aimPrem != null)
-		{
-			if (!(aimPrem is Tank) || IsDead((Tank)aimPrem) || shootOnlyToVictim && victim != null && aimPrem.Id != victim.Id)
-				aimPrem = null;
-			if (aimPrem is Tank && ((Tank)aimPrem).IsTeammate)
-				aimPrem = null;
-		}
-		if (aimReg != null)
-		{
-			if (!(aimReg is Tank) || IsDead((Tank)aimReg) || shootOnlyToVictim && victim != null && aimReg.Id != victim.Id)
-				aimReg = null;
-			if (aimReg is Tank && ((Tank)aimReg).IsTeammate)
-				aimReg = null;
-		}
+		if (BadAim(aimReg, victim, shootOnlyToVictim, regResX, regResY))
+			aimReg = null;
+		if (BadAim(aimPrem, victim, shootOnlyToVictim, premResX, premResY))
+			aimPrem = null;
 
 		if (world.Tick < firstShootTick)
 		{
@@ -104,5 +96,21 @@ class OneTankActualStrategy : ActualStrategy
 		ManageStuck();
 
 		AvoidBullets();
+	}
+	bool BadAim(Unit aim, Tank victim, bool shootOnlyToVictim, double x, double y)
+	{
+		if(BadAim(aim,victim,shootOnlyToVictim))
+			return true;
+		if(IsMovingBackward(victim))
+		{
+			if(x < 0)
+				return true;
+		}
+		else
+		{
+			if(x > 0)
+				return true;
+		}	
+		return false;
 	}
 }
