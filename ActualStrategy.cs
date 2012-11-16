@@ -310,7 +310,7 @@ abstract class ActualStrategy
 			double dx = myX - self.X;
 			double dy = myY - self.Y;
 			double dummy;
-			if (Inside(self, bulletX - dx, bulletY - dy, 8,out resX, out dummy))
+			if (Inside(self, bulletX - dx, bulletY - dy, 10,out resX, out dummy))
 				return true;
 			double dummyX, dummyY;
 			if (TestCollision(bulletX, bulletY, tick, -17, -7, out dummyX, out dummyY) != null)
@@ -436,11 +436,11 @@ abstract class ActualStrategy
 		//const int rotateTickCnt = 300;
 		if (experimentStarted)
 		{
-			move.LeftTrackPower = 1;
-			move.RightTrackPower = 0;
-			//if (experimentTick == 0)
-			//	file.WriteLine(move.LeftTrackPower + " " + move.RightTrackPower);
-			//file.WriteLine(self.Angle + " " + self.SpeedX + " " + self.SpeedY);
+			move.LeftTrackPower = -0.66;
+			move.RightTrackPower = 0.256;
+			if (experimentTick == 0)
+				file.WriteLine(move.LeftTrackPower + " " + move.RightTrackPower + " " + self.CrewHealth);
+			file.WriteLine(self.Angle + " " + self.SpeedX + " " + self.SpeedY + " " + self.X + " " + self.Y);
 			experimentTick++;
 		}
 	}

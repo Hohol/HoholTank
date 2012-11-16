@@ -15,7 +15,7 @@ class OneTankActualStrategy : ActualStrategy
 		historyX[world.Tick] = self.X;
 		historyY[world.Tick] = self.Y;
 
-		/*if (AliveEnemyCnt() == 0)
+		if (AliveEnemyCnt() == 0)
 		{
 			Experiment();
 			return;

@@ -33,6 +33,68 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 	}
 }
 
+class TankPhisicsConsts
+{
+  public double resistMove;
+  public double resistRotate;
+  public double recoilRegular;
+  public double recoilPremium;
+  public double accMove;
+  public double accRotate;
+	public static TankPhisicsConsts getPhisicsConsts()
+	{
+		TankPhisicsConsts ret = new TankPhisicsConsts();
+		ret.resistMove = 0.95;
+		ret.resistRotate = 0.979487; 
+		ret.recoilRegular = 1.58333;
+		ret.recoilPremium = ret.recoilRegular;
+		ret.accMove = 0.197917 / 2.0;
+		ret.accRotate = 4.185881264522092E-4;
+		return ret;
+	}
+};
+
+class MutableTank
+{
+	public double speed_x, speed_y, angular_speed, angle, x, y, engine_rear_power_factor;
+	public int crew_health;
+	public MutableTank(Tank tank)
+	{
+		speed_x = tank.SpeedX;
+		speed_y = tank.SpeedY;
+		angular_speed = tank.AngularSpeed;
+		angle = tank.Angle;
+		x = tank.X;
+		y = tank.Y;
+		engine_rear_power_factor = tank.EngineRearPowerFactor;
+		crew_health = tank.CrewHealth;
+	}
+	static void MoveTank(MutableTank tank, double leftTrackPower, double rightTrackPower)
+	{  
+	  TankPhisicsConsts phisics = TankPhisicsConsts.getPhisicsConsts();
+
+	  tank.speed_x *= phisics.resistMove;
+	  tank.speed_y *= phisics.resistMove;
+	  tank.angular_speed *= phisics.resistRotate;
+
+	  double life = tank.crew_health / 200.0 + 0.5;
+
+	  double leftAcc = (leftTrackPower >=0 ? leftTrackPower : leftTrackPower * tank.engine_rear_power_factor);
+	  double rightAcc = (rightTrackPower >=0 ? rightTrackPower : rightTrackPower * tank.engine_rear_power_factor);
+
+	  double accMove= life * phisics.accMove * (leftAcc + rightAcc);         
+	  tank.speed_x += accMove * Math.Cos(tank.angle);
+	  tank.speed_y += accMove * Math.Sin(tank.angle);
+
+	  tank.x += tank.speed_x;
+	  tank.y += tank.speed_y;
+
+	  double accRotate = life * phisics.accRotate * (leftAcc - rightAcc);         
+	  tank.angular_speed += accRotate;
+	  tank.angle += tank.angular_speed;
+	}
+};
+
 class EscapePlan
 {
 	public double leftTrackPower, rightTrackPower;
@@ -49,6 +111,43 @@ class EscapePlan
 			speedY = new double[] { 0.000000055, 0.000000048, 0.000040499, 0.000159965, 0.000394275, 0.000776622, 0.001337731, 0.002106051, 0.003107788, 0.004367114, 0.005906244, 0.007745530, 0.009903631, 0.012397577, 0.015242744, 0.018453161, 0.022041427, 0.026018790, 0.030395397, 0.035180114, 0.040380723, 0.046004072, 0.052055924, 0.058541091, 0.065463530, 0.072826448, 0.080632076, 0.088882056, 0.097577179, 0.106717687, 0.116303112, 0.126332334, 0.136803747, 0.147715040, 0.159063478, 0.170845785, 0.183058217, 0.195696541, 0.208756071, 0.222231654, 0.236117821, 0.250408666, 0.265097913, 0.280178833, 0.295644426, 0.311487423, 0.327700167, 0.344274663, 0.361202622, 0.378475423, 0.396084315, 0.414020112, 0.432273490, 0.450834825, 0.469694258, 0.488841656, 0.508266829, 0.527959118, 0.547907847, 0.568101910, 0.588530475, 0.609182035, 0.630045098, 0.651108121, 0.672359113, 0.693786320, 0.715377500, 0.737120324, 0.759002338, 0.781011168, 0.803134233, 0.825358747, 0.847671805, 0.870060418, 0.892511595, 0.915012264, 0.937549314, 0.960109347, 0.982679054, 1.005245037, 1.027794025, 1.050312385, 1.072786846, 1.095203819, 1.117549715, 1.139810908, 1.161974133, 1.184025649, 1.205951997, 1.227739881, 1.249375568, 1.270845686, 1.292137033, 1.313236002, 1.334129556, 1.354804338, 1.375247299, 1.395445493, 1.415385773, 1.435055182, 1.454441188, 1.473531120, 1.492312314, 1.510772450, 1.528899132, 1.546680329, 1.564103877, 1.581157983, 1.597831004, 1.614111398, 1.629987790, 1.645449009, 1.660484069, 1.675082181, 1.689232638, 1.702925039, 1.716149179, 1.728895185, 1.741153128, 1.752913409, 1.764166868, 1.774904316, 1.785117006, 1.794796279, 1.803933808, 1.812521593, 1.820551730, 1.828016653, 1.834908884, 1.841221655, 1.846948176, 1.852081866, 1.856616631, 1.860546469, 1.863865969, 1.866569601, 1.868652532, 1.870109932, 1.870937443, 1.871130962, 1.870686730, 1.869601231, 1.867871322, 1.865493999, 1.862466952, 1.858787942, 1.854454919, 1.849466215, 1.843820845, 1.837517683, 1.830556192, 1.822936029, 1.814657360, 1.805720469, 1.796126044, 1.785875033, 1.774968768, 1.763408919, 1.751197378, 1.738336563, 1.724829247, 1.710678090, 1.695886342, 1.680457870, 1.664396327, 1.647706011, 1.630391342, 1.612457302, 1.593908827, 1.574751459, 1.554990893, 1.534633233, 1.513684812, 1.492152251, 1.470042526, 1.447362691, 1.424120362, 1.400323311, 1.375979573, 1.351097475, 1.325685650, 1.299752866, 1.273308326, 1.246361435, 1.218921715, 1.190999165, 1.162603843, 1.133746183, 1.104436700, 1.074686341, 1.044505994, 1.013906996, 0.982900856, 0.951499222, 0.919714030, 0.887557389, 0.855041541, 0.822178930, 0.788982291, 0.755464386, }
 		});
 	}
+	/*
+	 * double l, r;
+	cin >> l >> r;
+	vector<double> angle, speedX, speedY;
+	double a, vx, vy;
+	while(cin >> a >> vx >> vy)
+	{
+		angle.push_back(a);
+		speedX.push_back(vx);
+		speedY.push_back(vy);
+	}
+
+	a = angle[0];
+	fori(i,sz(angle))
+		angle[i] -= a;
+	fori(i,sz(speedX))
+	{
+		double curAngle = atan2(speedY[i],speedX[i]);
+		double r = dist(0,0,speedX[i],speedY[i]);
+		curAngle -= a;
+		speedX[i] = r*cos(curAngle);
+		speedY[i] = r*sin(curAngle);
+	}
+
+	cout << "EscapePlan.ar.Add(new EscapePlan(){ " << endl
+		 << "leftTrackPower = " << l << "," << endl
+		 << "rightTrackPower = " << r << "," << endl
+		 << "angle = ";
+	print(angle);
+	cout << ", " << endl
+		 << "speedX = ";
+	print(speedX);
+	cout << ", " << endl
+		 << "speedY = ";
+	print(speedY);
+	cout << "});";
+	 * */
 }
 
 class Point
