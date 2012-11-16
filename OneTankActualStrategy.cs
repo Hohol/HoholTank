@@ -15,7 +15,7 @@ class OneTankActualStrategy : ActualStrategy
 		historyX[world.Tick] = self.X;
 		historyY[world.Tick] = self.Y;
 
-		if (AliveEnemyCnt() == 0)
+		/*if (AliveEnemyCnt() == 0)
 		{
 			Experiment();
 			return;
@@ -90,11 +90,12 @@ class OneTankActualStrategy : ActualStrategy
 				StayPerpendicular(tank);
 		}
 
-
 		ManageStuck();
-
+		//if (victim != null)
+			//TurnTo(victim.X,victim.Y);
 		AvoidBullets();
 	}
+
 	bool BadAim(Unit aim, Tank victim, bool shootOnlyToVictim, double x, double y)
 	{
 		if(BadAim(aim,victim,shootOnlyToVictim))

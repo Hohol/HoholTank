@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk.Model;
 using System.IO;
+using System.Linq;
 
 abstract class ActualStrategy
 {
@@ -30,6 +31,7 @@ abstract class ActualStrategy
 	double stuckDetectedTick = -1;
 	protected double cornerX, cornerY;
 	protected double targetX, targetY;
+	public static List<MoveType> moveTypes = new List<MoveType>();
 
 	protected Tank self;
 	static protected World world;
@@ -219,11 +221,6 @@ abstract class ActualStrategy
 		return r;
 	}
 
-	enum MoveType
-	{
-		inertion, accelerationForward, accelerationBackward
-	}
-
 	protected static bool IsMovingBackward(Unit unit)
 	{
 		double tx = 100 * Math.Cos(unit.Angle);
@@ -231,7 +228,7 @@ abstract class ActualStrategy
 		return tx * unit.SpeedX + ty * unit.SpeedY < 0;
 	}
 
-	bool Menace(Shell bullet, MoveType type, out double resX)
+	bool Menace(Shell bullet, MoveType moveType)
 	{
 		double friction;
 		if (bullet.Type == ShellType.Regular)
@@ -239,19 +236,8 @@ abstract class ActualStrategy
 		else
 			friction = premiumBulletFriction;
 		double bulletX = bullet.X, bulletY = bullet.Y;
-		double myX = self.X, myY = self.Y;
+		MutableTank me = new MutableTank(self);
 		double bulletSpeedX = bullet.SpeedX, bulletSpeedY = bullet.SpeedY;
-		double mySpeedX = self.SpeedX, mySpeedY = self.SpeedY;
-
-		double mySpeed = Math.Sqrt(Util.Sqr(self.SpeedX) + Util.Sqr(self.SpeedY));
-		if (IsMovingBackward(self))
-			mySpeed *= -1;
-
-		double cosa = Math.Cos(self.Angle);
-		double sina = Math.Sin(self.Angle);
-
-		double curMagicSpeed = (self.CrewHealth + 100.0) * 0.0197916745;
-
 		Point[] bounds = GetBounds(self, 0);
 
 		for (int tick = 0; tick < 100; tick++)
@@ -261,29 +247,12 @@ abstract class ActualStrategy
 			bulletX += bulletSpeedX;
 			bulletY += bulletSpeedY;
 
-			if (type == MoveType.inertion)
-			{
-				;
-			}
-			else if (type == MoveType.accelerationForward)
-			{
-				mySpeed += (curMagicSpeed - mySpeed) / 20;
-				mySpeedX = mySpeed * cosa;
-				mySpeedY = mySpeed * sina;
-			}
-			else if (type == MoveType.accelerationBackward)
-			{
-				mySpeed -= (curMagicSpeed * self.EngineRearPowerFactor + mySpeed) / 20;
-				mySpeedX = mySpeed * cosa;
-				mySpeedY = mySpeed * sina;
-			}
-			myX += mySpeedX;
-			myY += mySpeedY;
+			MutableTank.MoveTank(me, moveType);
 
 			for (int i = 0; i < 4; i++)
 			{
-				bounds[i].x += mySpeedX;
-				bounds[i].y += mySpeedY;
+				bounds[i].x += me.speedX;
+				bounds[i].y += me.speedY;
 			}
 
 			for (int i = 0; i < 4; i++)
@@ -298,8 +267,8 @@ abstract class ActualStrategy
 					shiftY = -bounds[i].y;
 				if (bounds[i].y > world.Height)
 					shiftY = world.Height - bounds[i].y;
-				myX += shiftX;
-				myY += shiftY;
+				me.X += shiftX;
+				me.Y += shiftY;
 				for (int j = 0; j < 4; j++)
 				{
 					bounds[j].x += shiftX;
@@ -307,16 +276,17 @@ abstract class ActualStrategy
 				}
 			}
 
-			double dx = myX - self.X;
-			double dy = myY - self.Y;
-			double dummy;
-			if (Inside(self, bulletX - dx, bulletY - dy, 10,out resX, out dummy))
-				return true;
+			/*double dummy;
+			if(Inside(self,bulletX,bulletY,12))
+			{
+				dummy = 33;
+			}*/
 			double dummyX, dummyY;
-			if (TestCollision(bulletX, bulletY, tick, -17, -7, out dummyX, out dummyY) != null)
+			if (Inside(me, bulletX, bulletY, 13, out dummyX,out dummyY))
+				return true;
+			if (TestCollision(bulletX, bulletY, tick, -10, -7, self, out dummyX, out dummyY) != null)
 				return false;
 		}
-		resX = double.NaN;
 		return false;
 	}
 
@@ -342,63 +312,24 @@ abstract class ActualStrategy
 		}
 	}
 
-	/*bool Menace(Shell bullet, EscapePlan plan)
-	{
-		int I;
-		double mi = inf;
-		double mySpeed = 
-		for (int i = 0; i < plan.angle.Length; i++)
-		{
-		}
-	}*/
-
 	protected void AvoidBullets()
 	{
 		List<Shell> bullets = new List<Shell>(world.Shells);
 		bullets.Sort(new BulletComparer(self));
+		moveTypes = moveTypes.OrderBy(
+			m => Math.Abs(m.LeftTrackPower - move.LeftTrackPower) 
+			   + Math.Abs(m.RightTrackPower - move.RightTrackPower)).ToList();
 		foreach (var bullet in bullets)
 		{
-			double resX;
-			if (Menace(bullet, MoveType.inertion,out resX))
+			if (Menace(bullet,new MoveType(move.LeftTrackPower,move.RightTrackPower)))
 			{
-				/*foreach(EscapePlan plan in EscapePlan.ar)
-				{
-					if (!Menace(bullet, plan))
+				foreach(var curMove in moveTypes)
+					if (!Menace(bullet, curMove))
 					{
-						move.LeftTrackPower = plan.leftTrackPower;
-						move.RightTrackPower = plan.rightTrackPower;
-					}
-				}*/
-				if (resX <= 0)
-				{
-					if (!Menace(bullet, MoveType.accelerationForward, out resX))
-					{
-						move.LeftTrackPower = 1;
-						move.RightTrackPower = 1;
+						move.LeftTrackPower = curMove.LeftTrackPower;
+						move.RightTrackPower = curMove.RightTrackPower;
 						return;
 					}
-					if (!Menace(bullet, MoveType.accelerationBackward, out resX))
-					{
-						move.LeftTrackPower = -1;
-						move.RightTrackPower = -1;
-						return;
-					}
-				}
-				else
-				{
-					if (!Menace(bullet, MoveType.accelerationBackward, out resX))
-					{
-						move.LeftTrackPower = -1;
-						move.RightTrackPower = -1;
-						return;
-					}
-					if (!Menace(bullet, MoveType.accelerationForward, out resX))
-					{
-						move.LeftTrackPower = 1;
-						move.RightTrackPower = 1;
-						return;
-					}					
-				}
 			}
 		}
 	}
@@ -412,6 +343,7 @@ abstract class ActualStrategy
 				&& Math.Abs(self.AngularSpeed) < 1e-5;
 	}
 
+#if TEDDY_BEARS
 	protected void Experiment()
 	{
 		if (!experimentStarted)
@@ -438,12 +370,13 @@ abstract class ActualStrategy
 		{
 			move.LeftTrackPower = -0.66;
 			move.RightTrackPower = 0.256;
-			if (experimentTick == 0)
-				file.WriteLine(move.LeftTrackPower + " " + move.RightTrackPower + " " + self.CrewHealth);
+			//if (experimentTick == 0)
+			//	file.WriteLine(move.LeftTrackPower + " " + move.RightTrackPower + " " + self.CrewHealth);
 			file.WriteLine(self.Angle + " " + self.SpeedX + " " + self.SpeedY + " " + self.X + " " + self.Y);
 			experimentTick++;
 		}
 	}
+#endif
 
 	void printInfo()
 	{
@@ -634,6 +567,8 @@ abstract class ActualStrategy
 		return null;
 	}
 
+
+
 	static bool Inside(Unit unit, double x, double y, double precision)
 	{
 		double dummyX, dummyY;
@@ -641,6 +576,11 @@ abstract class ActualStrategy
 	}
 
 	static bool Inside(Unit unit, double x, double y, double precision, out double resX, out double resY)
+	{
+		return Inside(new MutableUnit(unit), x, y, precision, out resX, out resY);
+	}
+
+	static bool Inside(MutableUnit unit, double x, double y, double precision, out double resX, out double resY)
 	{
 		double d = unit.GetDistanceTo(x, y);
 		double angle = unit.GetAngleTo(x, y);
@@ -743,22 +683,15 @@ abstract class ActualStrategy
 			move.LeftTrackPower = -1;
 			move.RightTrackPower = -1;
 		}/**/
-	}
+	}	
 
-	double dist(double x1, double y1, double x2, double y2)
-	{
-		double dx = x1 - x2;
-		double dy = y1 - y2;
-		return Math.Sqrt(dx * dx + dy * dy);
-	}
-
-	static Unit TestCollision(Unit[] ar, double x, double y, int tick, double enemyPrecision, double obstaclePrecision,
+	static Unit TestCollision(Unit[] ar, double x, double y, int tick, double enemyPrecision, double obstaclePrecision, Unit ignoredUnit,
 		out double resX, out double resY)
 	{
 		foreach (var unit in ar)
 		{
-			//if (unit.Id == self.Id) //!!!!!!!!!!!!!!!!!!!!!!!!
-			//	continue;
+			if (ignoredUnit != null && unit.Id == ignoredUnit.Id)
+				continue;
 			double r = Math.Min(unit.Width, unit.Height) / 2;
 			double t = tick;
 
@@ -801,13 +734,13 @@ abstract class ActualStrategy
 		return null;
 	}
 
-	static Unit TestCollision(double x, double y, int tick, double enemyPrecision, double obstaclePrecision,
+	static Unit TestCollision(double x, double y, int tick, double enemyPrecision, double obstaclePrecision, Unit ignoredUnit,
 		out double resX, out double resY)
 	{
-		Unit r = TestCollision(world.Bonuses, x, y, tick, enemyPrecision, obstaclePrecision, out resX, out resY);
+		Unit r = TestCollision(world.Bonuses, x, y, tick, enemyPrecision, obstaclePrecision, ignoredUnit, out resX, out resY);
 		if (r != null)
 			return r;
-		r = TestCollision(world.Tanks, x, y, tick, enemyPrecision, obstaclePrecision, out resX, out resY);
+		r = TestCollision(world.Tanks, x, y, tick, enemyPrecision, obstaclePrecision, ignoredUnit, out resX, out resY);
 		if (r != null)
 			return r;
 		resX = resY = double.NaN;
@@ -841,7 +774,7 @@ abstract class ActualStrategy
 
 		for (int tick = 0; ; tick++)
 		{
-			Unit unit = TestCollision(x, y, tick, -17, 10, out resX, out resY);
+			Unit unit = TestCollision(x, y, tick, -17, 10, null, out resX, out resY);
 			if (unit != null)
 			{
 				resTick = tick;
@@ -860,11 +793,11 @@ abstract class ActualStrategy
 		return null;
 	}
 
-	void TurnTo(Point p)
+	/*void TurnTo(Point p)
 	{
 		TurnTo(p.x, p.y);
-	}
-	void TurnTo(double x, double y)
+	}*/
+	protected void TurnTo(double x, double y)
 	{
 		double angle = self.GetAngleTo(x, y);
 
@@ -1038,7 +971,7 @@ abstract class ActualStrategy
 		for (int i = 0; i <= stepCnt; i++)
 		{
 			double dummyX, dummyY;
-			Unit o = TestCollision(x, y, 0, 0, 0, out dummyX, out dummyY);
+			Unit o = TestCollision(x, y, 0, 0, 0, null, out dummyX, out dummyY);
 			x += dx;
 			y += dy;
 
