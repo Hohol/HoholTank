@@ -35,7 +35,9 @@ abstract class ActualStrategy
 	static protected World world;
 	protected Move move;
 
-	StreamWriter file, teorFile, realFile;
+#if TEDDY_BEARS
+	public static StreamWriter file;//, teorFile, realFile;
+#endif
 
 	public abstract void Move(Tank self, World world, Move move);
 
@@ -340,6 +342,16 @@ abstract class ActualStrategy
 		}
 	}
 
+	/*bool Menace(Shell bullet, EscapePlan plan)
+	{
+		int I;
+		double mi = inf;
+		double mySpeed = 
+		for (int i = 0; i < plan.angle.Length; i++)
+		{
+		}
+	}*/
+
 	protected void AvoidBullets()
 	{
 		List<Shell> bullets = new List<Shell>(world.Shells);
@@ -349,6 +361,14 @@ abstract class ActualStrategy
 			double resX;
 			if (Menace(bullet, MoveType.inertion,out resX))
 			{
+				/*foreach(EscapePlan plan in EscapePlan.ar)
+				{
+					if (!Menace(bullet, plan))
+					{
+						move.LeftTrackPower = plan.leftTrackPower;
+						move.RightTrackPower = plan.rightTrackPower;
+					}
+				}*/
 				if (resX <= 0)
 				{
 					if (!Menace(bullet, MoveType.accelerationForward, out resX))
@@ -392,7 +412,7 @@ abstract class ActualStrategy
 				&& Math.Abs(self.AngularSpeed) < 1e-5;
 	}
 
-	void Experiment()
+	protected void Experiment()
 	{
 		if (!experimentStarted)
 		{
@@ -416,14 +436,11 @@ abstract class ActualStrategy
 		//const int rotateTickCnt = 300;
 		if (experimentStarted)
 		{
-			if (experimentTick == 0)
-				file.WriteLine(self.CrewHealth);
-			file.WriteLine(Math.Sqrt(Util.Sqr(self.SpeedX) + Util.Sqr(self.SpeedY)));
-			//if (experimentTick < rotateTickCnt)
-			{
-				move.LeftTrackPower = 1;
-				move.RightTrackPower = 1;
-			}
+			move.LeftTrackPower = 1;
+			move.RightTrackPower = 0;
+			//if (experimentTick == 0)
+			//	file.WriteLine(move.LeftTrackPower + " " + move.RightTrackPower);
+			//file.WriteLine(self.Angle + " " + self.SpeedX + " " + self.SpeedY);
 			experimentTick++;
 		}
 	}
@@ -534,6 +551,10 @@ abstract class ActualStrategy
 			if (tank.IsTeammate || IsDead(tank))
 				continue;
 			double dist = tank.GetDistanceTo(x, y);
+			if (ObstacleBetween(self,tank,true))
+			{
+				dist = inf/2;
+			}
 			if (dist < mi)
 			{
 				mi = dist;
