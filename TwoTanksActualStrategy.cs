@@ -92,7 +92,9 @@ class TwoTankskActualStrategy : ActualStrategy
 		if (AliveEnemyCnt() == 1 && AliveTeammateCnt() > 1)
 		{
 			Tank enemy = PickEnemy();
-			if(self.GetDistanceTo(enemy) > 4*self.Width)
+			double myDist = self.GetDistanceTo(enemy);
+			double tmDist = teammate.GetDistanceTo(enemy);
+			if(self.GetDistanceTo(enemy) > 4*self.Width && !(myDist < tmDist-self.Width/2))
 				MoveTo(enemy, true);
 		}
 
