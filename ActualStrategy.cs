@@ -51,14 +51,12 @@ abstract class ActualStrategy
 	protected void TryShoot(Unit victim, bool shootOnlyToVictim)
 	{
 		int dummy, resTick;
-		double premResX = double.NaN, premResY = double.NaN;
-		double regResX, regResY;
-		Unit aimPrem = self.PremiumShellCount > 0 ? EmulateShot(true, out dummy, out premResX, out premResY) : null;
-		Unit aimReg = EmulateShot(false, out resTick, out regResX, out regResY);
+		Unit aimPrem = self.PremiumShellCount > 0 ? EmulateShot(true, out dummy) : null;
+		Unit aimReg = EmulateShot(false, out resTick);
 
-		if (BadAim(aimReg, victim, shootOnlyToVictim, regResX, regResY, ShellType.Regular))
+		if (BadAim(aimReg, victim, shootOnlyToVictim, ShellType.Regular))
 			aimReg = null;
-		if (BadAim(aimPrem, victim, shootOnlyToVictim, premResX, premResY, ShellType.Premium))
+		if (BadAim(aimPrem, victim, shootOnlyToVictim, ShellType.Premium))
 			aimPrem = null;		
 
 		if (aimPrem != null && ((Tank)aimPrem).HullDurability > 20)
@@ -71,7 +69,7 @@ abstract class ActualStrategy
 		}
 	}
 
-	protected bool BadAim(Unit aim, Unit victim, bool shootOnlyToVictim, double x, double y, ShellType bulletType)
+	protected bool BadAim(Unit aim, Unit victim, bool shootOnlyToVictim, ShellType bulletType)
 	{
 		if (aim == null)
 			return true;
@@ -312,7 +310,7 @@ abstract class ActualStrategy
 			friction = premiumBulletFriction;
 		double startX = bulletX, startY = bulletY;
 		MutableTank me = new MutableTank(self);
-		Point[] bounds = GetBounds(self, 0);
+		Point[] bounds = GetBounds(self);
 
 		for (int tick = 0; tick < 100; tick++)
 		{
@@ -355,7 +353,6 @@ abstract class ActualStrategy
 			{
 				dummy = 33;
 			}*/
-			double dummyX, dummyY;
 			double precision;
 			if (bulletType == ShellType.Premium)
 				precision = 3;
@@ -367,7 +364,7 @@ abstract class ActualStrategy
 				precision *= -1;
 				anglePrecision *= -1;
 			}
-			if (Inside(me, bulletX, bulletY, precision, out dummyX, out dummyY))
+			if (Inside(me, bulletX, bulletY, precision))
 			{
 				double collisionAngle = GetCollisionAngle(me, bulletX, bulletY, startX, startY);
 				if (bulletType == ShellType.Premium || double.IsNaN(collisionAngle)
@@ -380,7 +377,7 @@ abstract class ActualStrategy
 					return false;
 #endif*/
 			}
-			if (TestCollision(bulletX, bulletY, tick, -10, -7, self, out dummyX, out dummyY) != null)
+			if (TestCollision(bulletX, bulletY, tick, -10, -7, self) != null)
 				return false;
 		}
 		return false;
@@ -388,7 +385,7 @@ abstract class ActualStrategy
 
 	static bool Menace(Tank self, Shell bullet, MoveType moveType)
 	{
-		Point[] bounds = GetBounds(bullet, 0);
+		Point[] bounds = GetBounds(bullet);
 		foreach (var p in bounds)
 		{
 			if (Menace(self, p.x, p.y, bullet.SpeedX, bullet.SpeedY, bullet.Type, moveType))
@@ -503,16 +500,16 @@ abstract class ActualStrategy
 			(bonus.Type == BonusType.RepairKit && self.HullDurability <= 40 || bonus.Type == BonusType.Medikit && self.CrewHealth <= 40);
 	}
 
-	static Point[] GetBounds(Unit unit, int resTick)
+	static Point[] GetBounds(Unit unit)
 	{
-		return GetBounds(new MutableUnit(unit), resTick);
+		return GetBounds(new MutableUnit(unit));
 	}
 
-	static Point[] GetBounds(MutableUnit unit, int resTick)
+	static Point[] GetBounds(MutableUnit unit)
 	{
-		double tx = unit.X + unit.SpeedX * resTick;
-		double ty = unit.Y + unit.SpeedY * resTick;
-		double alpha = unit.Angle + unit.AngularSpeed * resTick;
+		double tx = unit.X;
+		double ty = unit.Y;
+		double alpha = unit.Angle;
 		return GetBounds(tx, ty, alpha, unit.Width, unit.Height);
 	}
 
@@ -577,8 +574,7 @@ abstract class ActualStrategy
 		bool found = false;
 		for (int i = 0; i < 50; i++)
 		{
-			double dummyX, dummyY;
-			if (Inside(tank, bulletX, bulletY, -1, out dummyX, out dummyY))
+			if (Inside(tank, bulletX, bulletY, -1))
 			{
 				found = true;
 				break;
@@ -591,7 +587,7 @@ abstract class ActualStrategy
 
 		Point bullet = new Point(bulletX, bulletY);
 
-		Point[] ar = GetBounds(tank, 0);
+		Point[] ar = GetBounds(tank);
 
 		Point a = ar[0], b = ar[1], c = ar[2], d = ar[3];
 
@@ -717,20 +713,30 @@ abstract class ActualStrategy
 		return null;
 	}
 
+	bool Collide(Unit a, Unit b, double precision)
+	{
+		return Collide(new MutableUnit(a), new MutableUnit(b), precision);
+	}
 
+	bool Collide(MutableUnit a, MutableUnit b, double precision)
+	{
+		Point[] aBounds = GetBounds(a);
+		Point[] bBounds = GetBounds(b);
+		foreach (var p in aBounds)
+			if (Inside(b, p.x, p.y, precision))
+				return true;
+		foreach (var p in bBounds)
+			if (Inside(a, p.x, p.y, precision))
+				return true;
+		return false;
+	}
 
 	static bool Inside(Unit unit, double x, double y, double precision)
 	{
-		double dummyX, dummyY;
-		return Inside(unit, x, y, precision, out dummyX, out dummyY);
+		return Inside(new MutableUnit(unit), x, y, precision);
 	}
 
-	static bool Inside(Unit unit, double x, double y, double precision, out double resX, out double resY)
-	{
-		return Inside(new MutableUnit(unit), x, y, precision, out resX, out resY);
-	}
-
-	static bool Inside(MutableUnit unit, double x, double y, double precision, out double resX, out double resY)
+	static bool Inside(MutableUnit unit, double x, double y, double precision)
 	{
 		double d = unit.GetDistanceTo(x, y);
 		double angle = unit.GetAngleTo(x, y);
@@ -740,8 +746,6 @@ abstract class ActualStrategy
 		double h = unit.Height / 2 + precision;
 		double lx = -w, rx = w;
 		double ly = -h, ry = h;
-		resX = x;
-		resY = y;
 		return x >= -w && x <= w &&
 			   y >= -h && y <= h;
 	}
@@ -835,8 +839,7 @@ abstract class ActualStrategy
 		}/**/
 	}	
 
-	static Unit TestCollision(Unit[] ar, double x, double y, int tick, double enemyPrecision, double obstaclePrecision, Unit ignoredUnit,
-		out double resX, out double resY)
+	static Unit TestCollision(Unit[] ar, double x, double y, int tick, double enemyPrecision, double obstaclePrecision, Unit ignoredUnit)
 	{
 		foreach (var unit in ar)
 		{
@@ -877,27 +880,24 @@ abstract class ActualStrategy
 				precision = obstaclePrecision;
 			}
 
-			if (Inside(unit, x - dx, y - dy, precision, out resX, out resY))
+			if (Inside(unit, x - dx, y - dy, precision))
 				return unit;
 		}
-		resX = resY = double.NaN;
 		return null;
 	}
 
-	static Unit TestCollision(double x, double y, int tick, double enemyPrecision, double obstaclePrecision, Unit ignoredUnit,
-		out double resX, out double resY)
+	static Unit TestCollision(double x, double y, int tick, double enemyPrecision, double obstaclePrecision, Unit ignoredUnit)
 	{
-		Unit r = TestCollision(world.Bonuses, x, y, tick, enemyPrecision, obstaclePrecision, ignoredUnit, out resX, out resY);
+		Unit r = TestCollision(world.Bonuses, x, y, tick, enemyPrecision, obstaclePrecision, ignoredUnit);
 		if (r != null)
 			return r;
-		r = TestCollision(world.Tanks, x, y, tick, enemyPrecision, obstaclePrecision, ignoredUnit, out resX, out resY);
+		r = TestCollision(world.Tanks, x, y, tick, enemyPrecision, obstaclePrecision, ignoredUnit);
 		if (r != null)
 			return r;
-		resX = resY = double.NaN;
 		return null;
 	}
 
-	protected Unit EmulateShot(bool premium, out int resTick, out double resX, out double resY)
+	protected Unit EmulateShot(bool premium, out int resTick)
 	{
 		double bulletSpeed, friction;
 		if (premium)
@@ -928,7 +928,7 @@ abstract class ActualStrategy
 		{
 			foreach (var p in bounds)
 			{
-				Unit unit = TestCollision(p.x, p.y, tick, -10, 2, null, out resX, out resY);
+				Unit unit = TestCollision(p.x, p.y, tick, -10, 2, null);
 				if (unit != null)
 				{
 					resTick = tick;
@@ -947,8 +947,6 @@ abstract class ActualStrategy
 			if (sumDist > needDist)
 				break;
 		}
-		resX = double.NaN;
-		resY = double.NaN;
 		resTick = -1;
 		return null;
 	}
@@ -998,7 +996,7 @@ abstract class ActualStrategy
 			y += 2 * (self.Y - y);
 		}
 		
-		Point[] ar = GetBounds(self, 0);
+		Point[] ar = GetBounds(self);
 
 		Point p = new Point(x, y);
 		if (Point.wp(ar[3], ar[0], p) <= 0 && Point.wp(ar[2], ar[1], p) >= 0)
@@ -1071,8 +1069,76 @@ abstract class ActualStrategy
 		}
 	}
 
+	bool MoveToBonusSmart(Bonus bonus)
+	{
+		if (DistanceToBorder() < self.Width*2/3)
+			return false;
+		double mi = inf;
+		MoveType r = null;
+		MutableUnit b = new MutableUnit(bonus);
+
+		foreach (var moveType in moveTypes)
+		{
+			double test = GetMovementTime(b, moveType, mi);
+			if (test < mi)
+			{
+				mi = test;
+				r = moveType;
+			}
+		}
+		if (r != null)
+		{
+			move.LeftTrackPower = r.LeftTrackPower;
+			move.RightTrackPower = r.RightTrackPower;
+			return true;
+		}
+		else
+			return false;
+
+	}
+
+	double GetMovementTime(MutableUnit unit, MoveType moveType, double curMin)
+	{
+		MutableTank me = new MutableTank(self);
+		for (int tick = 0; tick < 50; tick++)
+		{
+			if (tick > curMin)
+				return inf;
+			if (Collide(me, unit,-1))
+				return tick;			
+			MutableTank.MoveTank(me, moveType);
+		}
+		return inf;
+	}
+
+	protected void MoveToBonus(Bonus bonus, bool forward)
+	{
+		if (bonus.Type == BonusType.AmmoCrate ||
+		   bonus.Type == BonusType.Medikit && self.CrewHealth < self.CrewMaxHealth ||
+		   bonus.Type == BonusType.RepairKit && self.HullDurability < self.HullMaxDurability)
+			MoveTo(bonus, forward);
+		else
+		{
+			double dx = bonus.X - self.X;
+			double dy = bonus.Y - self.Y;
+			double d = Point.dist(0, 0, dx, dy);
+			dx /= d;
+			dy /= d;
+			double indent = self.Width*1.5;
+			MoveTo(bonus.X - dx * indent, bonus.Y - dy * indent, dx, dy);
+		}
+	}
+
 	protected void MoveTo(Unit unit, bool forward)
 	{
+		if (unit is Bonus)
+		{
+			if (self.GetDistanceTo(unit) < self.Width * 2)
+			{
+				if(MoveToBonusSmart((Bonus)unit))
+					return;
+			}
+		}
 		MoveTo(unit.X, unit.Y, forward);
 	}
 
@@ -1130,8 +1196,7 @@ abstract class ActualStrategy
 		double y = self.Y;
 		for (int i = 0; i <= stepCnt; i++)
 		{
-			double dummyX, dummyY;
-			Unit o = TestCollision(x, y, 0, 0, 0, null, out dummyX, out dummyY);
+			Unit o = TestCollision(x, y, 0, 0, 0, null);
 			x += dx;
 			y += dy;
 

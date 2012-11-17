@@ -69,7 +69,7 @@ class TwoTankskActualStrategy : ActualStrategy
 		cornerX = cornerY = -1;
 		if (bonus != null && (world.Tick > runToCornerTime || bonus.Type == BonusType.AmmoCrate))
 		{
-			MoveTo(bonus, forward);
+			MoveToBonus(bonus, forward);
 		}
 		else
 		{
@@ -78,40 +78,7 @@ class TwoTankskActualStrategy : ActualStrategy
 		if (victim != null)
 			TurnToMovingTank(victim, false);
 
-		int dummy, resTick;
-		double premResX = double.NaN, premResY = double.NaN;
-		double regResX, regResY;
-		Unit aimPrem = self.PremiumShellCount > 0 ? EmulateShot(true, out dummy, out premResX, out premResY) : null;
-		Unit aimReg = EmulateShot(false, out resTick, out regResX, out regResY);
-
-		if (BadAim(aimReg, victim, shootOnlyToVictim, regResX, regResY, ShellType.Regular))
-			aimReg = null;
-		if (BadAim(aimPrem, victim, shootOnlyToVictim, premResX, premResY, ShellType.Premium))
-			aimPrem = null;
-
-		if (aimPrem != null)
-		{
-			if (!(aimPrem is Tank) || IsDead((Tank)aimPrem) || shootOnlyToVictim && victim != null && aimPrem.Id != victim.Id)
-				aimPrem = null;
-			if (aimPrem is Tank && ((Tank)aimPrem).IsTeammate)
-				aimPrem = null;
-		}
-		if (aimReg != null)
-		{
-			if (!(aimReg is Tank) || IsDead((Tank)aimReg) || shootOnlyToVictim && victim != null && aimReg.Id != victim.Id)
-				aimReg = null;
-			if (aimReg is Tank && ((Tank)aimReg).IsTeammate)
-				aimReg = null;
-		}
-
-		if (aimPrem != null && ((Tank)aimPrem).HullDurability > 20)
-			move.FireType = FireType.Premium;
-		else if (aimReg != null)
-		{
-			double angle = GetCollisionAngle((Tank)aimReg, resTick);
-			if (double.IsNaN(angle) || angle < ricochetAngle - Math.PI / 10)
-				move.FireType = FireType.Regular;
-		}
+		TryShoot(victim, shootOnlyToVictim);
 
 		RotateForSafety();
 

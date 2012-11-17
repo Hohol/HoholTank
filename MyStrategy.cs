@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk.Model;
 using System.IO;
+using System.Linq;
 
 namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 {
@@ -22,9 +23,12 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 #endif
 
 			const int n = 5;
-			for (int i = -n; i <= n; i++)
-				for (int j = -n; j <= n; j++)
+			for (int i = n; i >= -n; i--)
+				for (int j = n; j >= -n; j--)
 					ActualStrategy.moveTypes.Add(new MoveType(i / (double)n, j / (double)n));
+			ActualStrategy.moveTypes = ActualStrategy.moveTypes.OrderBy(
+					m => 2-Math.Abs(m.LeftTrackPower+m.RightTrackPower)
+				).ToList();
 			ActualStrategy.smartAss = new HashSet<string>()
 			{
 				//  ^_^
