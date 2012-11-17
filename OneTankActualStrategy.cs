@@ -76,12 +76,12 @@ class OneTankActualStrategy : ActualStrategy
 		prevMove = new MoveType(move.LeftTrackPower, move.RightTrackPower);
 	}
 
-	protected override bool BadAim(Unit aim, Unit victim, bool shootOnlyToVictim, double x, double y, ShellType bulletType)
+	/*protected override bool BadAim(Unit aim, Unit victim, bool shootOnlyToVictim, double x, double y, ShellType bulletType)
 	{
 		if(BadAim(aim,victim,shootOnlyToVictim,bulletType))
 			return true;
 		if (self.GetDistanceTo(aim) < self.Width * 3)
 			return false;		
 		return false;
-	}
+	}*/
 }

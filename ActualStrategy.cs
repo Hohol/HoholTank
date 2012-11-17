@@ -71,7 +71,18 @@ abstract class ActualStrategy
 		}
 	}
 
-	protected abstract bool BadAim(Unit aim, Unit victim, bool shootOnlyToVictim, double x, double y, ShellType bulletType);
+	protected bool BadAim(Unit aim, Unit victim, bool shootOnlyToVictim, double x, double y, ShellType bulletType)
+	{
+		if (aim == null)
+			return true;
+		if (!(aim is Tank) || IsDead((Tank)aim) || shootOnlyToVictim && victim != null && aim.Id != victim.Id)
+			return true;
+		if (aim is Tank && ((Tank)aim).IsTeammate)
+			return true;
+		if (aim is Tank && bulletType == ShellType.Premium && CanEscape((Tank)aim, bulletType))
+			return true;
+		return false;
+	}
 
 	protected void MoveTo(double x, double y, double dx, double dy)
 	{
@@ -93,19 +104,6 @@ abstract class ActualStrategy
 			else
 				MoveTo(x, y, false);
 		}
-	}
-
-	protected bool BadAim(Unit aim, Unit victim, bool shootOnlyToVictim, ShellType bulletType)
-	{
-		if (aim == null)
-			return true;
-		if (!(aim is Tank) || IsDead((Tank)aim) || shootOnlyToVictim && victim != null && aim.Id != victim.Id)
-			return true;
-		if (aim is Tank && ((Tank)aim).IsTeammate)
-			return true;
-		if (aim is Tank && bulletType == ShellType.Premium && CanEscape((Tank)aim, bulletType))
-			return true;
-		return false;
 	}
 
 	protected int AliveTeammateCnt()
@@ -930,7 +928,7 @@ abstract class ActualStrategy
 		{
 			foreach (var p in bounds)
 			{
-				Unit unit = TestCollision(p.x, p.y, tick, -10, 1, null, out resX, out resY);
+				Unit unit = TestCollision(p.x, p.y, tick, -10, 2, null, out resX, out resY);
 				if (unit != null)
 				{
 					resTick = tick;

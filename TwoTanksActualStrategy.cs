@@ -210,7 +210,7 @@ class TwoTankskActualStrategy : ActualStrategy
 		}
 	}
 
-	protected override bool BadAim(Unit aim, Unit victim, bool shootOnlyToVictim, double x, double y, ShellType bulletType)
+	/*protected override bool BadAim(Unit aim, Unit victim, bool shootOnlyToVictim, double x, double y, ShellType bulletType)
 	{
 		if (BadAim(aim, victim, shootOnlyToVictim, bulletType))
 			return true;
@@ -227,7 +227,7 @@ class TwoTankskActualStrategy : ActualStrategy
 				return true;
 		}
 		return false;
-	}
+	}*/
 
 	/*override protected void MoveBackwards(out double resX, out double resY)
 	{
