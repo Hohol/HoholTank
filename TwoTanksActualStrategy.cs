@@ -60,6 +60,9 @@ class TwoTankskActualStrategy : ActualStrategy
 			bonus = GetBonus(self, out forward, forbidden);
 		}
 
+#if TEDDY_BEARS
+		//bonus = null;
+#endif
 		Tank victim = GetWithSmallestDistSum();
 
 		bool shootOnlyToVictim = false;
@@ -106,13 +109,13 @@ class TwoTankskActualStrategy : ActualStrategy
 		else if (aimReg != null)
 		{
 			double angle = GetCollisionAngle((Tank)aimReg, resTick);
-			if (angle < ricochetAngle - Math.PI / 10)
+			if (double.IsNaN(angle) || angle < ricochetAngle - Math.PI / 10)
 				move.FireType = FireType.Regular;
 		}
 
 		RotateForSafety();
 
-		if (world.Tick > runToCornerTime && AliveEnemyCnt() <= 3)
+		if (world.Tick > runToCornerTime && AliveEnemyCnt() <= 1)
 		{
 			var tank = GetMostAngryEnemy();
 			if (tank != null)
@@ -122,7 +125,7 @@ class TwoTankskActualStrategy : ActualStrategy
 		if (AliveEnemyCnt() == 1 && AliveTeammateCnt() > 1)
 		{
 			Tank enemy = PickEnemy();
-			if(self.GetDistanceTo(enemy) > 3*self.Width)
+			if(self.GetDistanceTo(enemy) > 4*self.Width)
 				MoveTo(enemy, true);
 		}
 
@@ -134,6 +137,7 @@ class TwoTankskActualStrategy : ActualStrategy
 		ManageStuck();
 
 		AvoidBullets();
+		prevMove = new MoveType(move.LeftTrackPower, move.RightTrackPower);
 	}
 
 	bool LeftMost()

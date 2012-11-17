@@ -72,7 +72,7 @@ class OneTankActualStrategy : ActualStrategy
 		else if (aimReg != null)
 		{
 			double angle = GetCollisionAngle((Tank)aimReg, resTick);
-			if (angle < ricochetAngle - Math.PI / 10)
+			if (double.IsNaN(angle) || angle < ricochetAngle - Math.PI / 10)
 				move.FireType = FireType.Regular;
 		}
 
@@ -83,7 +83,7 @@ class OneTankActualStrategy : ActualStrategy
 		if (world.Tick > runToCornerTime && victim != null && !HaveTimeToTurn(victim) && !bonusSaves)
 			TurnToMovingTank(victim, true);
 
-		if (world.Tick > runToCornerTime && AliveEnemyCnt() <= 3)
+		if (world.Tick > runToCornerTime && AliveEnemyCnt() <= 1)
 		{
 			var tank = GetMostAngryEnemy();
 			if (tank != null)
@@ -94,6 +94,7 @@ class OneTankActualStrategy : ActualStrategy
 		//if (victim != null)
 			//TurnTo(victim.X,victim.Y);
 		AvoidBullets();
+		prevMove = new MoveType(move.LeftTrackPower, move.RightTrackPower);
 	}
 
 	bool BadAim(Unit aim, Tank victim, bool shootOnlyToVictim, double x, double y)

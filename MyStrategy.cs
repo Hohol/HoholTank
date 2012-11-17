@@ -61,12 +61,12 @@ class TankPhisicsConsts
 
 class MutableUnit
 {
-	public double Angle, Y, X, Width, Height, speedX, speedY, AngularSpeed;
+	public double Angle, Y, X, Width, Height, SpeedX, SpeedY, AngularSpeed;
 	public MutableUnit() { }
 	public MutableUnit(Unit unit)
 	{
-		speedX = unit.SpeedX;
-		speedY = unit.SpeedY;
+		SpeedX = unit.SpeedX;
+		SpeedY = unit.SpeedY;
 		AngularSpeed = unit.AngularSpeed;
 		Angle = unit.Angle;
 		X = unit.X;
@@ -105,8 +105,8 @@ class MutableTank : MutableUnit
 	{  
 	  TankPhisicsConsts phisics = TankPhisicsConsts.getPhisicsConsts();
 
-	  tank.speedX *= phisics.resistMove;
-	  tank.speedY *= phisics.resistMove;
+	  tank.SpeedX *= phisics.resistMove;
+	  tank.SpeedY *= phisics.resistMove;
 	  tank.AngularSpeed *= phisics.resistRotate;
 
 	  double life = tank.crew_health / 200.0 + 0.5;
@@ -115,11 +115,11 @@ class MutableTank : MutableUnit
 	  double rightAcc = (moveType.RightTrackPower >= 0 ? moveType.RightTrackPower : moveType.RightTrackPower * tank.engine_rear_power_factor);
 
 	  double accMove= life * phisics.accMove * (leftAcc + rightAcc);         
-	  tank.speedX += accMove * Math.Cos(tank.Angle);
-	  tank.speedY += accMove * Math.Sin(tank.Angle);
+	  tank.SpeedX += accMove * Math.Cos(tank.Angle);
+	  tank.SpeedY += accMove * Math.Sin(tank.Angle);
 
-	  tank.X += tank.speedX;
-	  tank.Y += tank.speedY;
+	  tank.X += tank.SpeedX;
+	  tank.Y += tank.SpeedY;
 
 	  double accRotate = life * phisics.accRotate * (leftAcc - rightAcc);         
 	  tank.AngularSpeed += accRotate;

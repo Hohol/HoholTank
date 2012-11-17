@@ -23,6 +23,7 @@ abstract class ActualStrategy
 	const double stuckDist = 10;
 	const int stuckAvoidTime = 35;
 	protected const int runToCornerTime = 300;
+	protected MoveType prevMove;
 
 	//int dummy;
 
@@ -236,6 +237,7 @@ abstract class ActualStrategy
 		else
 			friction = premiumBulletFriction;
 		double bulletX = bullet.X, bulletY = bullet.Y;
+		double startX = bullet.X, startY = bullet.Y;
 		MutableTank me = new MutableTank(self);
 		double bulletSpeedX = bullet.SpeedX, bulletSpeedY = bullet.SpeedY;
 		Point[] bounds = GetBounds(self, 0);
@@ -251,8 +253,8 @@ abstract class ActualStrategy
 
 			for (int i = 0; i < 4; i++)
 			{
-				bounds[i].x += me.speedX;
-				bounds[i].y += me.speedY;
+				bounds[i].x += me.SpeedX;
+				bounds[i].y += me.SpeedY;
 			}
 
 			for (int i = 0; i < 4; i++)
@@ -282,8 +284,16 @@ abstract class ActualStrategy
 				dummy = 33;
 			}*/
 			double dummyX, dummyY;
-			if (Inside(me, bulletX, bulletY, 13, out dummyX,out dummyY))
-				return true;
+			if (Inside(me, bulletX, bulletY, 13, out dummyX, out dummyY))
+			{
+				double collisionAngle = GetCollisionAngle(me, bulletX, bulletY, startX, startY);
+				if (bullet.Type == ShellType.Premium || double.IsNaN(collisionAngle)
+					|| collisionAngle < ricochetAngle + Math.PI / 10)
+					return true;
+				else
+					return false;
+				//return true;
+			}
 			if (TestCollision(bulletX, bulletY, tick, -10, -7, self, out dummyX, out dummyY) != null)
 				return false;
 		}
@@ -317,7 +327,7 @@ abstract class ActualStrategy
 		List<Shell> bullets = new List<Shell>(world.Shells);
 		bullets.Sort(new BulletComparer(self));
 		moveTypes = moveTypes.OrderBy(
-			m => Math.Abs(m.LeftTrackPower - move.LeftTrackPower) 
+			m => Math.Abs(m.LeftTrackPower - move.LeftTrackPower)
 			   + Math.Abs(m.RightTrackPower - move.RightTrackPower)).ToList();
 		foreach (var bullet in bullets)
 		{
@@ -394,6 +404,11 @@ abstract class ActualStrategy
 
 	Point[] GetBounds(Unit unit, int resTick)
 	{
+		return GetBounds(new MutableUnit(unit), resTick);
+	}
+
+	Point[] GetBounds(MutableUnit unit, int resTick)
+	{
 		double tx = unit.X + unit.SpeedX * resTick;
 		double ty = unit.Y + unit.SpeedY * resTick;
 
@@ -428,6 +443,8 @@ abstract class ActualStrategy
 		double sina = Math.Sin(angle);
 		double bulletX = self.X + self.VirtualGunLength * cosa;
 		double bulletY = self.Y + self.VirtualGunLength * sina;
+		double startX = bulletX;
+		double startY = bulletY;
 		double dx = regularBulletStartSpeed * cosa;
 		double dy = regularBulletStartSpeed * sina;
 
@@ -441,11 +458,39 @@ abstract class ActualStrategy
 		}
 
 		Point me = new Point(self.X, self.Y);
+		return GetCollisionAngle(new MutableUnit(tank), bulletX, bulletY, startX, startY);
+	}
+
+	protected double GetCollisionAngle(MutableUnit tank, double bulletX, double bulletY, double startX, double startY)
+	{
+
+		double dx = bulletX - startX;
+		double dy = bulletY - startY;
+		double dd = Point.dist(0, 0, dx, dy);
+		dx /= dd;
+		dy /= dd;
+		bool found = false;
+		for (int i = 0; i < 50; i++)
+		{
+			double dummyX, dummyY;
+			if (Inside(tank, bulletX, bulletY, -1, out dummyX, out dummyY))
+			{
+				found = true;
+				break;
+			}
+			bulletX += dx;
+			bulletY += dy;
+		}
+		if (!found)
+			return double.NaN;
+
 		Point bullet = new Point(bulletX, bulletY);
 
-		Point[] ar = GetBounds(tank, resTick);
+		Point[] ar = GetBounds(tank, 0);
 
 		Point a = ar[0], b = ar[1], c = ar[2], d = ar[3];
+
+		Point me = new Point(startX, startY);
 
 		double va = Math.Atan2(me.y - bullet.y, me.x - bullet.x);
 
@@ -458,7 +503,7 @@ abstract class ActualStrategy
 		if (Point.Intersect(d, a, bullet, me))
 			return angleDiff(va, tank.Angle + Math.PI / 2);
 		//throw new Exception();
-		return inf;
+		return double.NaN;
 	}
 
 	static double angleDiff(double a, double b)
