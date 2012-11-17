@@ -93,6 +93,10 @@ class TwoTankskActualStrategy : ActualStrategy
 
 		AvoidBullets();
 		prevMove = new MoveType(move.LeftTrackPower, move.RightTrackPower);
+		/*if (world.Tick >= startTick && self.Y > world.Height / 2)
+		{
+			file.WriteLine("real " + world.Tick + " " + self.X + " " + self.Y + " " + self.Angle);
+		}*/
 	}
 
 	private bool TeammateNeedsMore(Bonus bonus)

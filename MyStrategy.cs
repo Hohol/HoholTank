@@ -12,12 +12,15 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 		public TankType SelectTank(int tankIndex, int teamSize)
 		{
 #if TEDDY_BEARS
-			//ActualStrategy.file = new StreamWriter("output.txt");
-			//ActualStrategy.file.AutoFlush = true;
-			/*realFile = new StreamWriter("real.txt");
-			realFile.AutoFlush = true;
-			teorFile = new StreamWriter("teor.txt");
-			teorFile.AutoFlush = true;*/
+			if (tankIndex == 0)
+			{
+				ActualStrategy.file = new StreamWriter("output.txt");
+				ActualStrategy.file.AutoFlush = true;
+				/*realFile = new StreamWriter("real.txt");
+				realFile.AutoFlush = true;
+				teorFile = new StreamWriter("teor.txt");
+				teorFile.AutoFlush = true;*/
+			}
 			System.Threading.Thread.CurrentThread.CurrentCulture 
 				= System.Globalization.CultureInfo.InvariantCulture;
 #endif

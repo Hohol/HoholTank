@@ -22,6 +22,7 @@ abstract class ActualStrategy
 	const double bulletHeight = 7.5;
 
 	const int stuckDetectTickCnt = 100;
+	bool stuckEscapeForward;
 	const double stuckDist = 10;
 	const int stuckAvoidTime = 35;
 	protected const int runToCornerTime = 300;
@@ -416,6 +417,8 @@ abstract class ActualStrategy
 		}
 	}
 
+	protected const int startTick = 1780;
+
 	protected void AvoidBullets()
 	{
 		List<Shell> bullets = new List<Shell>(world.Shells);
@@ -423,7 +426,7 @@ abstract class ActualStrategy
 		var curMoves = new List<MoveType>(moveTypes);
 		if(prevMove != null)
 			curMoves.Add(prevMove);
-			
+
 		curMoves = curMoves.OrderBy(
 			m => Math.Abs(m.LeftTrackPower - move.LeftTrackPower)
 			   + Math.Abs(m.RightTrackPower - move.RightTrackPower)).ToList();
@@ -434,6 +437,12 @@ abstract class ActualStrategy
 				foreach(var curMove in curMoves)
 					if (!Menace(self, bullet, curMove))
 					{
+						/*if (self.Y > world.Height / 2 && world.Tick >= startTick)
+						{
+							MutableTank me = new MutableTank(self);
+							MutableTank.MoveTank(me, curMove);
+							file.WriteLine("teor " + world.Tick + " " + me.X + " " + me.Y + " " + me.Angle + curMove.LeftTrackPower + " " + curMove.RightTrackPower);
+						}*/
 						move.LeftTrackPower = curMove.LeftTrackPower;
 						move.RightTrackPower = curMove.RightTrackPower;
 						return;
@@ -763,26 +772,40 @@ abstract class ActualStrategy
 	{
 		if (stuckDetectedTick != -1 && world.Tick - stuckDetectedTick > stuckAvoidTime)
 			stuckDetectedTick = -1;
-		if (stuckDetectedTick == -1 && Stuck())
-			stuckDetectedTick = world.Tick;
+		if (stuckDetectedTick == -1)
+		{
+			if (Stuck())
+			{
+				stuckDetectedTick = world.Tick;
+				if (Math.Abs(self.GetAngleTo(world.Width / 2, world.Height / 2)) < Math.PI / 2)
+					stuckEscapeForward = true;
+				else
+					stuckEscapeForward = false;
+			}
+			else
+			{
+				if (Stuck2(out stuckEscapeForward))
+					stuckDetectedTick = world.Tick;
+			}
+		}
 		if (stuckDetectedTick != -1)
 		{
-			if (Math.Abs(self.GetAngleTo(world.Width / 2, world.Height / 2)) < Math.PI / 2)
+			if (stuckEscapeForward)
 			{
 				move.LeftTrackPower = 1;
 				move.RightTrackPower = 1;
 			}
 			else
 			{
-				move.LeftTrackPower = -1;
 				move.RightTrackPower = -1;
+				move.LeftTrackPower = -1;
 			}
-		}/**/
+		}
 	}
 
 	int TestStuck(Point p, double angle)
 	{
-		double len = 5;
+		double len = 1;
 		double dx = len * Math.Cos(angle);
 		double dy = len * Math.Sin(angle);
 		foreach (var tank in world.Tanks)
@@ -806,26 +829,10 @@ abstract class ActualStrategy
 			return false;
 		if (self.GetDistanceTo(targetX, targetY) < self.Height)
 			return false;
+		if (cornerX >= 0 && self.GetDistanceTo(cornerX, cornerY) <= self.Width)
+			return false;
+		
 
-		Point[] bounds = GetBounds(self);
-		if (IsMovingBackward(self))
-		{
-			Point mid = new Point((bounds[2].x + bounds[3].x) / 2, (bounds[2].y + bounds[3].y) / 2);
-			int cnt = TestStuck(bounds[2], self.Angle+Math.PI) +
-					  TestStuck(bounds[3], self.Angle+Math.PI) +
-					  TestStuck(mid, self.Angle + Math.PI);
-			if (cnt >= 2)
-				return true;
-		}
-		else
-		{
-			Point mid = new Point((bounds[0].x + bounds[1].x) / 2, (bounds[0].y + bounds[1].y) / 2);
-			int cnt = TestStuck(bounds[0], self.Angle) +
-					  TestStuck(bounds[1], self.Angle) +
-					  TestStuck(mid, self.Angle);
-			if (cnt >= 2)
-				return true;
-		}
 		double ma = 0;
 		for (int i = world.Tick - stuckDetectTickCnt; i < world.Tick; i++)
 		{
@@ -836,9 +843,38 @@ abstract class ActualStrategy
 		if (ma > stuckDist)
 			return false;
 
-		if (cornerX >= 0 && self.GetDistanceTo(cornerX, cornerY) <= self.Width)
-			return false;
 		return true;
+	}
+
+	bool Stuck2(out bool shouldMoveForward)
+	{
+		Point[] bounds = GetBounds(self);
+		if (IsMovingBackward(self))
+		{
+			Point mid = new Point((bounds[2].x + bounds[3].x) / 2, (bounds[2].y + bounds[3].y) / 2);
+			int cnt = TestStuck(bounds[2], self.Angle + Math.PI) +
+					  TestStuck(bounds[3], self.Angle + Math.PI) +
+					  TestStuck(mid, self.Angle + Math.PI);
+			if (cnt >= 2)
+			{
+				shouldMoveForward = true;
+				return true;
+			}
+		}
+		else
+		{
+			Point mid = new Point((bounds[0].x + bounds[1].x) / 2, (bounds[0].y + bounds[1].y) / 2);
+			int cnt = TestStuck(bounds[0], self.Angle) +
+					  TestStuck(bounds[1], self.Angle) +
+					  TestStuck(mid, self.Angle);
+			if (cnt >= 2)
+			{
+				shouldMoveForward = false;
+				return true;
+			}
+		}
+		shouldMoveForward = false;
+		return false;
 	}
 
 	virtual protected void MoveBackwards(out double resX, out double resY)
