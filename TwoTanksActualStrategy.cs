@@ -103,10 +103,24 @@ class TwoTankskActualStrategy : ActualStrategy
 		if (world.Tick > runToCornerTime && victim != null && !HaveTimeToTurn(victim) && !bonusSaves)
 			TurnToMovingTank(victim, true);
 
+		//MoveToDead();
+
 		ManageStuck();
 
 		AvoidBullets();
 		prevMove = new MoveType(move.LeftTrackPower, move.RightTrackPower);
+	}
+
+	void MoveToDead()
+	{
+		foreach (Tank tank in world.Tanks)
+		{
+			if (IsDead(tank))
+			{
+				MoveTo(tank,true);
+				return;
+			}
+		}
 	}
 
 	bool LeftMost()

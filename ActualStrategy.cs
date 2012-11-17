@@ -780,6 +780,21 @@ abstract class ActualStrategy
 		}/**/
 	}
 
+	int TestStuck(Point p, double angle)
+	{
+		double len = 5;
+		double dx = len * Math.Cos(angle);
+		double dy = len * Math.Sin(angle);
+		foreach (var tank in world.Tanks)
+		{
+			if (tank.Id == self.Id)
+				continue;
+			if (Inside(tank, p.x + dx, p.y + dy, 0))
+				return 1;
+		}
+		return 0;
+	}
+
 	bool Stuck()
 	{
 		double mi = inf;
@@ -787,11 +802,30 @@ abstract class ActualStrategy
 			if (tank.Id != self.Id)
 				mi = Math.Min(mi, self.GetDistanceTo(tank));
 		mi = Math.Min(mi, DistanceToBorder());
-		if (mi > self.Width / 2 + 5)
+		if (mi > self.Width*1.5)
 			return false;
 		if (self.GetDistanceTo(targetX, targetY) < self.Height)
 			return false;
 
+		Point[] bounds = GetBounds(self);
+		if (IsMovingBackward(self))
+		{
+			Point mid = new Point((bounds[2].x + bounds[3].x) / 2, (bounds[2].y + bounds[3].y) / 2);
+			int cnt = TestStuck(bounds[2], self.Angle+Math.PI) +
+					  TestStuck(bounds[3], self.Angle+Math.PI) +
+					  TestStuck(mid, self.Angle + Math.PI);
+			if (cnt >= 2)
+				return true;
+		}
+		else
+		{
+			Point mid = new Point((bounds[0].x + bounds[1].x) / 2, (bounds[0].y + bounds[1].y) / 2);
+			int cnt = TestStuck(bounds[0], self.Angle) +
+					  TestStuck(bounds[1], self.Angle) +
+					  TestStuck(mid, self.Angle);
+			if (cnt >= 2)
+				return true;
+		}
 		double ma = 0;
 		for (int i = world.Tick - stuckDetectTickCnt; i < world.Tick; i++)
 		{
