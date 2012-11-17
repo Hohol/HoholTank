@@ -234,29 +234,31 @@ class TwoTankskActualStrategy : ActualStrategy
 			double test = self.GetDistanceTo(tank) + teammate.GetDistanceTo(tank);
 			if (ObstacleBetween(self, tank, true))
 				test = inf / 2;
-			/*
-			double test = TimeToTurn(self, tank);
-			if (!IsDead(teammate))
-				test += TimeToTurn(teammate, tank);
-			if (test < 0)
-				test = inf / 2;
-			if (ObstacleBetween(self,tank, true))
-				test = inf / 2;
-			double flyTime = (self.GetDistanceTo(tank) - self.VirtualGunLength) / regularBulletStartSpeed;
-			test += flyTime;
-			if (!IsDead(teammate))
-			{
-				flyTime = (teammate.GetDistanceTo(tank) - teammate.VirtualGunLength) / regularBulletStartSpeed;
-				test += flyTime;
-			}
-			*/
-			if (test < mi)
+
+			if (res == null || test < mi*0.8 || test < mi*1.2 && MoreSweet(tank,res))
 			{
 				mi = test;
 				res = tank;
 			}
 		}
 		return res;
+	}
+
+	int TeamSize(Tank tank)
+	{
+		int r = 0;
+		foreach (Tank t in world.Tanks)
+			if (tank.PlayerName == t.PlayerName)
+				r++;
+		return r;
+	}
+
+	bool MoreSweet(Tank a, Tank b)
+	{
+		int s1 = TeamSize(a), s2 = TeamSize(b);
+		if (s1 != s2)
+			return s1 > s2;
+		return Math.Min(a.CrewHealth, a.HullDurability) < Math.Min(b.CrewHealth, b.HullDurability);
 	}
 
 	/*static bool Inside(Unit unit, double x, double y, double precision, bool enemy = false)
