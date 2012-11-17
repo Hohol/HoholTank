@@ -24,7 +24,7 @@ class OneTankActualStrategy : ActualStrategy
 		bool forward;
 		Bonus bonus = GetBonus(self, out forward);
 #if TEDDY_BEARS
-		bonus = null;
+		//bonus = null;
 #endif
 		Tank victim = null;
 
@@ -50,31 +50,10 @@ class OneTankActualStrategy : ActualStrategy
 		if (victim != null)
 			TurnToMovingTank(victim, false);
 
-		int dummy, resTick;
-		double premResX = double.NaN, premResY = double.NaN;
-		double regResX, regResY;
-		Unit aimPrem = self.PremiumShellCount > 0 ? EmulateShot(true, out dummy, out premResX,out premResY) : null;
-		Unit aimReg = EmulateShot(false, out resTick, out regResX, out regResY);
-
-		if (BadAim(aimReg, victim, shootOnlyToVictim, regResX, regResY))
-			aimReg = null;
-		if (BadAim(aimPrem, victim, shootOnlyToVictim, premResX, premResY))
-			aimPrem = null;
+		TryShoot(victim, shootOnlyToVictim);
 
 		if (world.Tick < firstShootTick)
-		{
-			aimPrem = null;
-			aimReg = null;
-		}
-
-		if (aimPrem != null && ((Tank)aimPrem).HullDurability > 20)
-			move.FireType = FireType.Premium;
-		else if (aimReg != null)
-		{
-			double angle = GetCollisionAngle((Tank)aimReg, resTick);
-			if (double.IsNaN(angle) || angle < ricochetAngle - Math.PI / 10)
-				move.FireType = FireType.Regular;
-		}
+			move.FireType = FireType.None;
 
 		RotateForSafety();
 
@@ -97,22 +76,12 @@ class OneTankActualStrategy : ActualStrategy
 		prevMove = new MoveType(move.LeftTrackPower, move.RightTrackPower);
 	}
 
-	bool BadAim(Unit aim, Tank victim, bool shootOnlyToVictim, double x, double y)
+	protected override bool BadAim(Unit aim, Unit victim, bool shootOnlyToVictim, double x, double y, ShellType bulletType)
 	{
-		if(BadAim(aim,victim,shootOnlyToVictim))
+		if(BadAim(aim,victim,shootOnlyToVictim,bulletType))
 			return true;
 		if (self.GetDistanceTo(aim) < self.Width * 3)
-			return false;
-		if(IsMovingBackward(victim))
-		{
-			if(x < 0)
-				return true;
-		}
-		else
-		{
-			if(x > 0)
-				return true;
-		}	
+			return false;		
 		return false;
 	}
 }

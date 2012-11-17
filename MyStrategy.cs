@@ -25,6 +25,10 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			for (int i = -n; i <= n; i++)
 				for (int j = -n; j <= n; j++)
 					ActualStrategy.moveTypes.Add(new MoveType(i / (double)n, j / (double)n));
+			ActualStrategy.smartAss = new HashSet<string>()
+			{
+				//  ^_^
+			};
 			if (teamSize == 1)
 				strat = new OneTankActualStrategy();
 			else

@@ -61,7 +61,7 @@ class TwoTankskActualStrategy : ActualStrategy
 		}
 
 #if TEDDY_BEARS
-		bonus = null;
+		//bonus = null;
 #endif
 		Tank victim = GetWithSmallestDistSum();
 
@@ -84,9 +84,9 @@ class TwoTankskActualStrategy : ActualStrategy
 		Unit aimPrem = self.PremiumShellCount > 0 ? EmulateShot(true, out dummy, out premResX, out premResY) : null;
 		Unit aimReg = EmulateShot(false, out resTick, out regResX, out regResY);
 
-		if (BadAim(aimReg, victim, shootOnlyToVictim, regResX, regResY))
+		if (BadAim(aimReg, victim, shootOnlyToVictim, regResX, regResY, ShellType.Regular))
 			aimReg = null;
-		if (BadAim(aimPrem, victim, shootOnlyToVictim, premResX, premResY))
+		if (BadAim(aimPrem, victim, shootOnlyToVictim, premResX, premResY, ShellType.Premium))
 			aimPrem = null;
 
 		if (aimPrem != null)
@@ -210,9 +210,9 @@ class TwoTankskActualStrategy : ActualStrategy
 		}
 	}
 
-	bool BadAim(Unit aim, Tank victim, bool shootOnlyToVictim, double x, double y)
+	protected override bool BadAim(Unit aim, Unit victim, bool shootOnlyToVictim, double x, double y, ShellType bulletType)
 	{
-		if (BadAim(aim, victim, shootOnlyToVictim))
+		if (BadAim(aim, victim, shootOnlyToVictim, bulletType))
 			return true;
 		if (self.GetDistanceTo(aim) < self.Width * 3)
 			return false;
@@ -272,7 +272,7 @@ class TwoTankskActualStrategy : ActualStrategy
 		return res;
 	}
 
-	static bool Inside(Unit unit, double x, double y, double precision, bool enemy = false)
+	/*static bool Inside(Unit unit, double x, double y, double precision, bool enemy = false)
 	{
 		double d = unit.GetDistanceTo(x, y);
 		double angle = unit.GetAngleTo(x, y);
@@ -297,5 +297,5 @@ class TwoTankskActualStrategy : ActualStrategy
 			y >= ly && y <= ry;
 		//return x >= -w && x <= w &&
 		//	   y >= -h && y <= h;
-	}
+	}*/
 }

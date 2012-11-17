@@ -18,6 +18,8 @@ abstract class ActualStrategy
 	protected const string myName = "Hohol";
 	protected readonly double diagonalLen = Math.Sqrt(1280 * 1280 + 800 * 800);
 	protected const double stayPerpendicularDistance = 800 * 3/4;
+	const double bulletWidth = 22.5;
+	const double bulletHeight = 7.5;
 
 	const int stuckDetectTickCnt = 100;
 	const double stuckDist = 10;
@@ -38,11 +40,38 @@ abstract class ActualStrategy
 	static protected World world;
 	protected Move move;
 
+	public static HashSet<string> smartAss;
+
 #if TEDDY_BEARS
 	public static StreamWriter file;//, teorFile, realFile;
 #endif
 
 	public abstract void Move(Tank self, World world, Move move);
+
+	protected void TryShoot(Unit victim, bool shootOnlyToVictim)
+	{
+		int dummy, resTick;
+		double premResX = double.NaN, premResY = double.NaN;
+		double regResX, regResY;
+		Unit aimPrem = self.PremiumShellCount > 0 ? EmulateShot(true, out dummy, out premResX, out premResY) : null;
+		Unit aimReg = EmulateShot(false, out resTick, out regResX, out regResY);
+
+		if (BadAim(aimReg, victim, shootOnlyToVictim, regResX, regResY, ShellType.Regular))
+			aimReg = null;
+		if (BadAim(aimPrem, victim, shootOnlyToVictim, premResX, premResY, ShellType.Premium))
+			aimPrem = null;		
+
+		if (aimPrem != null && ((Tank)aimPrem).HullDurability > 20)
+			move.FireType = FireType.Premium;
+		else if (aimReg != null)
+		{
+			double angle = GetCollisionAngle((Tank)aimReg, resTick);
+			if (double.IsNaN(angle) || angle < ricochetAngle - Math.PI / 10)
+				move.FireType = FireType.Regular;
+		}
+	}
+
+	protected abstract bool BadAim(Unit aim, Unit victim, bool shootOnlyToVictim, double x, double y, ShellType bulletType);
 
 	protected void MoveTo(double x, double y, double dx, double dy)
 	{
@@ -66,13 +95,15 @@ abstract class ActualStrategy
 		}
 	}
 
-	protected bool BadAim(Unit aim, Tank victim, bool shootOnlyToVictim)
+	protected bool BadAim(Unit aim, Unit victim, bool shootOnlyToVictim, ShellType bulletType)
 	{
 		if (aim == null)
 			return true;
 		if (!(aim is Tank) || IsDead((Tank)aim) || shootOnlyToVictim && victim != null && aim.Id != victim.Id)
 			return true;
 		if (aim is Tank && ((Tank)aim).IsTeammate)
+			return true;
+		if (aim is Tank && bulletType == ShellType.Premium && CanEscape((Tank)aim, bulletType))
 			return true;
 		return false;
 	}
@@ -229,7 +260,52 @@ abstract class ActualStrategy
 		return tx * unit.SpeedX + ty * unit.SpeedY < 0;
 	}
 
-	bool Menace(double bulletX, double bulletY, double bulletSpeedX, double bulletSpeedY, ShellType bulletType, MoveType moveType)
+	protected bool CanEscape(Tank tank, ShellType bulletType)
+	{
+		double bulletSpeed;
+		if (bulletType == ShellType.Premium)
+			bulletSpeed = premiumBulletStartSpeed;
+		else
+			bulletSpeed = regularBulletStartSpeed;
+
+		double angle = self.Angle + self.TurretRelativeAngle;
+		double cosa = Math.Cos(angle);
+		double sina = Math.Sin(angle);
+		double bulletX = self.X + self.VirtualGunLength * cosa;
+		double bulletY = self.Y + self.VirtualGunLength * sina;
+		double bulletSpeedX = bulletSpeed * cosa;
+		double bulletSpeedY = bulletSpeed * sina;
+
+		Point[] bounds = GetBounds(bulletX, bulletY, angle, bulletWidth, bulletHeight);
+
+		List<MoveType> ar;
+		if (smartAss.Contains(tank.PlayerName))
+			ar = moveTypes;
+		else
+		{
+			ar = new List<MoveType>();
+			ar.Add(new MoveType(1, 1));
+			ar.Add(new MoveType(-1, -1));
+		}
+
+		foreach (var moveType in ar)
+		{
+			bool can = true;
+			foreach (var p in bounds)
+			{
+				if (Menace(tank, bulletX, bulletY, bulletSpeedX, bulletSpeedY, bulletType, moveType))
+				{
+					can = false;
+					break;
+				}
+			}
+			if (can)
+				return true;
+		}
+		return false;
+	}
+
+	static bool Menace(Tank self, double bulletX, double bulletY, double bulletSpeedX, double bulletSpeedY, ShellType bulletType, MoveType moveType)
 	{
 		double friction;
 		if (bulletType == ShellType.Regular)
@@ -284,14 +360,20 @@ abstract class ActualStrategy
 			double dummyX, dummyY;
 			double precision;
 			if (bulletType == ShellType.Premium)
-				precision = 1;
+				precision = 3;
 			else
 				precision = 0;
+			double anglePrecision = Math.PI / 10;
+			if (!self.IsTeammate)
+			{
+				precision *= -1;
+				anglePrecision *= -1;
+			}
 			if (Inside(me, bulletX, bulletY, precision, out dummyX, out dummyY))
 			{
 				double collisionAngle = GetCollisionAngle(me, bulletX, bulletY, startX, startY);
 				if (bulletType == ShellType.Premium || double.IsNaN(collisionAngle)
-					|| collisionAngle < ricochetAngle + Math.PI / 10)
+					|| collisionAngle < ricochetAngle + precision)
 					return true;
 				else
 					return false;
@@ -306,12 +388,12 @@ abstract class ActualStrategy
 		return false;
 	}
 
-	bool Menace(Shell bullet, MoveType moveType)
+	static bool Menace(Tank self, Shell bullet, MoveType moveType)
 	{
 		Point[] bounds = GetBounds(bullet, 0);
 		foreach (var p in bounds)
 		{
-			if (Menace(p.x, p.y, bullet.SpeedX, bullet.SpeedY, bullet.Type, moveType))
+			if (Menace(self, p.x, p.y, bullet.SpeedX, bullet.SpeedY, bullet.Type, moveType))
 				return true;
 		}
 		return false;
@@ -352,10 +434,10 @@ abstract class ActualStrategy
 			   + Math.Abs(m.RightTrackPower - move.RightTrackPower)).ToList();
 		foreach (var bullet in bullets)
 		{
-			if (Menace(bullet,new MoveType(move.LeftTrackPower,move.RightTrackPower)))
+			if (Menace(self, bullet,new MoveType(move.LeftTrackPower,move.RightTrackPower)))
 			{
 				foreach(var curMove in curMoves)
-					if (!Menace(bullet, curMove))
+					if (!Menace(self, bullet, curMove))
 					{
 						move.LeftTrackPower = curMove.LeftTrackPower;
 						move.RightTrackPower = curMove.RightTrackPower;
@@ -423,19 +505,23 @@ abstract class ActualStrategy
 			(bonus.Type == BonusType.RepairKit && self.HullDurability <= 40 || bonus.Type == BonusType.Medikit && self.CrewHealth <= 40);
 	}
 
-	Point[] GetBounds(Unit unit, int resTick)
+	static Point[] GetBounds(Unit unit, int resTick)
 	{
 		return GetBounds(new MutableUnit(unit), resTick);
 	}
 
-	Point[] GetBounds(MutableUnit unit, int resTick)
+	static Point[] GetBounds(MutableUnit unit, int resTick)
 	{
 		double tx = unit.X + unit.SpeedX * resTick;
 		double ty = unit.Y + unit.SpeedY * resTick;
-
-		double beta = Math.Atan2(unit.Height / 2, unit.Width / 2);
 		double alpha = unit.Angle + unit.AngularSpeed * resTick;
-		double D = Math.Sqrt(Util.Sqr(unit.Height / 2) + Util.Sqr(unit.Width / 2));
+		return GetBounds(tx, ty, alpha, unit.Width, unit.Height);
+	}
+
+	static Point[] GetBounds(double tx, double ty, double alpha, double width, double height)
+	{
+		double beta = Math.Atan2(height / 2, width / 2);		
+		double D = Math.Sqrt(Util.Sqr(height / 2) + Util.Sqr(width / 2));
 		Point t = new Point(tx, ty);
 
 		Point a = new Point(D * Math.Cos(alpha + beta), D * Math.Sin(alpha + beta));
@@ -482,7 +568,7 @@ abstract class ActualStrategy
 		return GetCollisionAngle(new MutableUnit(tank), bulletX, bulletY, startX, startY);
 	}
 
-	protected double GetCollisionAngle(MutableUnit tank, double bulletX, double bulletY, double startX, double startY)
+	static protected double GetCollisionAngle(MutableUnit tank, double bulletX, double bulletY, double startX, double startY)
 	{
 
 		double dx = bulletX - startX;
@@ -838,23 +924,33 @@ abstract class ActualStrategy
 		double sumDist = 0;
 		double needDist = premium ? premiumShotDistance : diagonalLen;
 
+		Point[] bounds = GetBounds(x, y, angle, bulletWidth, bulletHeight);
+
 		for (int tick = 0; ; tick++)
 		{
-			Unit unit = TestCollision(x, y, tick, -17, 10, null, out resX, out resY);
-			if (unit != null)
+			foreach (var p in bounds)
 			{
-				resTick = tick;
-				return unit;
+				Unit unit = TestCollision(p.x, p.y, tick, -10, 1, null, out resX, out resY);
+				if (unit != null)
+				{
+					resTick = tick;
+					return unit;
+				}
 			}
-			x += dx;
-			y += dy;
 			dx *= friction;
 			dy *= friction;
+			foreach (var p in bounds)
+			{
+				p.x += dx;
+				p.y += dy;
+			}
 			bulletSpeed *= friction;
 			sumDist += bulletSpeed;
 			if (sumDist > needDist)
 				break;
 		}
+		resX = double.NaN;
+		resY = double.NaN;
 		resTick = -1;
 		return null;
 	}
