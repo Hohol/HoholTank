@@ -37,9 +37,9 @@ class TwoTankskActualStrategy : ActualStrategy
 
 		bool forward, tmForward;
 		Bonus bonus = GetBonus(self, out forward);
+		Bonus tmBonus = GetBonus(teammate, out tmForward);
 		if (bonus != null)
 		{
-			Bonus tmBonus = GetBonus(teammate, out tmForward);
 			if (tmBonus != null && bonus.Id == tmBonus.Id && TeammateNeedsMore(bonus))
 				bonus = GetBonus(self, out forward, tmBonus);
 		}
@@ -47,8 +47,6 @@ class TwoTankskActualStrategy : ActualStrategy
 #if TEDDY_BEARS
 		//bonus = null;
 #endif
-		Tank victim = GetWithSmallestDistSum();
-
 		bool shootOnlyToVictim = false;
 		cornerX = cornerY = -1;
 		if (bonus != null && (world.Tick > runToCornerTime || bonus.Type == BonusType.AmmoCrate))
@@ -57,8 +55,14 @@ class TwoTankskActualStrategy : ActualStrategy
 		}
 		else
 		{
-			MoveBackwards();
+			if (tmBonus == null || world.Tick <= runToCornerTime)
+				MoveBackwards();
+			else
+				MoveNearTo(teammate);
 		}
+
+
+		Tank victim = GetWithSmallestDistSum();
 		if (victim != null)
 			TurnToMovingTank(victim, false);
 

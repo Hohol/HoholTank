@@ -1161,6 +1161,17 @@ abstract class ActualStrategy
 		return inf;
 	}
 
+	protected void MoveNearTo(Unit unit)
+	{
+		double dx = unit.X - self.X;
+		double dy = unit.Y - self.Y;
+		double d = Point.dist(0, 0, dx, dy);
+		dx /= d;
+		dy /= d;
+		double indent = self.Width * 1.5;
+		MoveTo(unit.X - dx * indent, unit.Y - dy * indent, dx, dy);
+	}
+
 	protected void MoveToBonus(Bonus bonus, bool forward)
 	{
 		if (bonus.Type == BonusType.AmmoCrate ||
@@ -1170,13 +1181,7 @@ abstract class ActualStrategy
 			MoveTo(bonus, forward);
 		else
 		{
-			double dx = bonus.X - self.X;
-			double dy = bonus.Y - self.Y;
-			double d = Point.dist(0, 0, dx, dy);
-			dx /= d;
-			dy /= d;
-			double indent = self.Width*1.5;
-			MoveTo(bonus.X - dx * indent, bonus.Y - dy * indent, dx, dy);
+			MoveNearTo(bonus);
 		}
 	}
 
