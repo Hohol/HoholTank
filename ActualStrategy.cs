@@ -322,8 +322,8 @@ abstract class ActualStrategy
 			bulletX += bulletSpeedX;
 			bulletY += bulletSpeedY;
 
-			if(moveType.LeftTrackPower >= 0.15 && moveType.LeftTrackPower <= 0.25 && moveType.RightTrackPower == 1)
-				file.WriteLine(world.Tick + " " + me.X + " " + me.Y + " " + me.Angle);
+			/*if(moveType.LeftTrackPower >= 0.15 && moveType.LeftTrackPower <= 0.25 && moveType.RightTrackPower == 1)
+				file.WriteLine(world.Tick + " " + me.X + " " + me.Y + " " + me.Angle);*/
 
 			MutableTank.MoveTank(me, moveType, world);			
 
@@ -469,7 +469,7 @@ abstract class ActualStrategy
 			move.RightTrackPower = 0.256;
 			//if (experimentTick == 0)
 			//	file.WriteLine(move.LeftTrackPower + " " + move.RightTrackPower + " " + self.CrewHealth);
-			file.WriteLine(self.Angle + " " + self.SpeedX + " " + self.SpeedY + " " + self.X + " " + self.Y);
+			//file.WriteLine(self.Angle + " " + self.SpeedX + " " + self.SpeedY + " " + self.X + " " + self.Y);
 			experimentTick++;
 		}
 	}
@@ -1165,7 +1165,8 @@ abstract class ActualStrategy
 	{
 		if (bonus.Type == BonusType.AmmoCrate ||
 		   bonus.Type == BonusType.Medikit && self.CrewHealth < self.CrewMaxHealth ||
-		   bonus.Type == BonusType.RepairKit && self.HullDurability < self.HullMaxDurability)
+		   bonus.Type == BonusType.RepairKit && self.HullDurability < self.HullMaxDurability ||
+			EnemyNear(bonus))
 			MoveTo(bonus, forward);
 		else
 		{
@@ -1177,6 +1178,18 @@ abstract class ActualStrategy
 			double indent = self.Width*1.5;
 			MoveTo(bonus.X - dx * indent, bonus.Y - dy * indent, dx, dy);
 		}
+	}
+
+	private bool EnemyNear(Bonus bonus)
+	{
+		foreach (var tank in world.Tanks)
+		{
+			if (tank.IsTeammate || IsDead(tank))
+				continue;
+			if (bonus.GetDistanceTo(tank) < 2 * self.Width)
+				return true;
+		}
+		return false;
 	}
 
 	protected void MoveTo(Unit unit, bool forward)
