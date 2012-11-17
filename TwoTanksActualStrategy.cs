@@ -61,7 +61,7 @@ class TwoTankskActualStrategy : ActualStrategy
 		}
 
 #if TEDDY_BEARS
-		//bonus = null;
+		bonus = null;
 #endif
 		Tank victim = GetWithSmallestDistSum();
 

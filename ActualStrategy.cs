@@ -229,17 +229,15 @@ abstract class ActualStrategy
 		return tx * unit.SpeedX + ty * unit.SpeedY < 0;
 	}
 
-	bool Menace(Shell bullet, MoveType moveType)
+	bool Menace(double bulletX, double bulletY, double bulletSpeedX, double bulletSpeedY, ShellType bulletType, MoveType moveType)
 	{
 		double friction;
-		if (bullet.Type == ShellType.Regular)
+		if (bulletType == ShellType.Regular)
 			friction = regularBulletFriction;
 		else
 			friction = premiumBulletFriction;
-		double bulletX = bullet.X, bulletY = bullet.Y;
-		double startX = bullet.X, startY = bullet.Y;
+		double startX = bulletX, startY = bulletY;
 		MutableTank me = new MutableTank(self);
-		double bulletSpeedX = bullet.SpeedX, bulletSpeedY = bullet.SpeedY;
 		Point[] bounds = GetBounds(self, 0);
 
 		for (int tick = 0; tick < 100; tick++)
@@ -284,18 +282,37 @@ abstract class ActualStrategy
 				dummy = 33;
 			}*/
 			double dummyX, dummyY;
-			if (Inside(me, bulletX, bulletY, 13, out dummyX, out dummyY))
+			double precision;
+			if (bulletType == ShellType.Premium)
+				precision = 1;
+			else
+				precision = 0;
+			if (Inside(me, bulletX, bulletY, precision, out dummyX, out dummyY))
 			{
 				double collisionAngle = GetCollisionAngle(me, bulletX, bulletY, startX, startY);
-				if (bullet.Type == ShellType.Premium || double.IsNaN(collisionAngle)
+				if (bulletType == ShellType.Premium || double.IsNaN(collisionAngle)
 					|| collisionAngle < ricochetAngle + Math.PI / 10)
 					return true;
 				else
 					return false;
-				//return true;
+/*#if !TEDDY_BEARS
+					preved
+					return false;
+#endif*/
 			}
 			if (TestCollision(bulletX, bulletY, tick, -10, -7, self, out dummyX, out dummyY) != null)
 				return false;
+		}
+		return false;
+	}
+
+	bool Menace(Shell bullet, MoveType moveType)
+	{
+		Point[] bounds = GetBounds(bullet, 0);
+		foreach (var p in bounds)
+		{
+			if (Menace(p.x, p.y, bullet.SpeedX, bullet.SpeedY, bullet.Type, moveType))
+				return true;
 		}
 		return false;
 	}
@@ -326,14 +343,18 @@ abstract class ActualStrategy
 	{
 		List<Shell> bullets = new List<Shell>(world.Shells);
 		bullets.Sort(new BulletComparer(self));
-		moveTypes = moveTypes.OrderBy(
+		var curMoves = new List<MoveType>(moveTypes);
+		if(prevMove != null)
+			curMoves.Add(prevMove);
+			
+		curMoves = curMoves.OrderBy(
 			m => Math.Abs(m.LeftTrackPower - move.LeftTrackPower)
 			   + Math.Abs(m.RightTrackPower - move.RightTrackPower)).ToList();
 		foreach (var bullet in bullets)
 		{
 			if (Menace(bullet,new MoveType(move.LeftTrackPower,move.RightTrackPower)))
 			{
-				foreach(var curMove in moveTypes)
+				foreach(var curMove in curMoves)
 					if (!Menace(bullet, curMove))
 					{
 						move.LeftTrackPower = curMove.LeftTrackPower;

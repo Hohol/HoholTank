@@ -24,7 +24,7 @@ class OneTankActualStrategy : ActualStrategy
 		bool forward;
 		Bonus bonus = GetBonus(self, out forward);
 #if TEDDY_BEARS
-		//bonus = null;
+		bonus = null;
 #endif
 		Tank victim = null;
 
