@@ -44,6 +44,10 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 		}
 		public void Move(Tank self, World world, Move move)
 		{
+#if TEDDY_BEARS
+			/*if(world.Tick < ActualStrategy.startTick || world.Tick > ActualStrategy.endTick)
+				return;/**/
+#endif
 			strat.Move(self, world, move);
 		}
 	}
@@ -107,12 +111,14 @@ class MutableTank : MutableUnit
 {	
 	public double engine_rear_power_factor;
 	public int crew_health;
+	Point[] bounds;
 	public MutableTank(Tank tank) : base(tank)
 	{		
 		engine_rear_power_factor = tank.EngineRearPowerFactor;
 		crew_health = tank.CrewHealth;
+		bounds = ActualStrategy.GetBounds(tank);
 	}
-	public static void MoveTank(MutableTank tank, MoveType moveType)
+	public static void MoveTank(MutableTank tank, MoveType moveType, World world)
 	{  
 	  TankPhisicsConsts phisics = TankPhisicsConsts.getPhisicsConsts();
 
@@ -135,6 +141,33 @@ class MutableTank : MutableUnit
 	  double accRotate = life * phisics.accRotate * (leftAcc - rightAcc);         
 	  tank.AngularSpeed += accRotate;
 	  tank.Angle += tank.AngularSpeed;
+
+	  for (int i = 0; i < 4; i++)
+	  {
+		  tank.bounds[i].x += tank.SpeedX;
+		  tank.bounds[i].y += tank.SpeedY;
+	  }
+
+	  for (int i = 0; i < 4; i++)
+	  {
+		  double shiftX = 0;
+		  double shiftY = 0;
+		  if (tank.bounds[i].x < 0)
+			  shiftX = -tank.bounds[i].x;
+		  if (tank.bounds[i].x > world.Width)
+			  shiftX = world.Width - tank.bounds[i].x;
+		  if (tank.bounds[i].y < 0)
+			  shiftY = -tank.bounds[i].y;
+		  if (tank.bounds[i].y > world.Height)
+			  shiftY = world.Height - tank.bounds[i].y;
+		  tank.X += shiftX;
+		  tank.Y += shiftY;
+		  for (int j = 0; j < 4; j++)
+		  {
+			  tank.bounds[j].x += shiftX;
+			  tank.bounds[j].y += shiftY;
+		  }
+	  }
 	}
 };
 

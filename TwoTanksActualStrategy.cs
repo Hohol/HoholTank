@@ -151,7 +151,6 @@ class TwoTankskActualStrategy : ActualStrategy
 		double secondY = self.Width*1.5;
 		double vertD = self.Width / 2 + self.Height / 2;
 		if (LeftMost())
-		//if(false)
 		{
 			if (self.Y < teammate.Y)
 				MoveTo(firstX, vertD, 0, 1);
@@ -159,7 +158,6 @@ class TwoTankskActualStrategy : ActualStrategy
 				MoveTo(firstX, world.Height -vertD, 0, -1);
 		}
 		else if (RightMost())
-		//else if(false)
 		{
 			if (self.Y < teammate.Y)
 				MoveTo(world.Width - firstX, vertD, 0, 1);

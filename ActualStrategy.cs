@@ -51,6 +51,8 @@ abstract class ActualStrategy
 
 	protected void TryShoot(Unit victim, bool shootOnlyToVictim)
 	{
+		if (self.RemainingReloadingTime > 0)
+			return;
 		int dummy, resTick;
 		Unit aimPrem = self.PremiumShellCount > 0 ? EmulateShot(true, out dummy) : null;
 		Unit aimReg = EmulateShot(false, out resTick);
@@ -320,34 +322,10 @@ abstract class ActualStrategy
 			bulletX += bulletSpeedX;
 			bulletY += bulletSpeedY;
 
-			MutableTank.MoveTank(me, moveType);
+			if(moveType.LeftTrackPower >= 0.15 && moveType.LeftTrackPower <= 0.25 && moveType.RightTrackPower == 1)
+				file.WriteLine(world.Tick + " " + me.X + " " + me.Y + " " + me.Angle);
 
-			for (int i = 0; i < 4; i++)
-			{
-				bounds[i].x += me.SpeedX;
-				bounds[i].y += me.SpeedY;
-			}
-
-			for (int i = 0; i < 4; i++)
-			{
-				double shiftX = 0;
-				double shiftY = 0;
-				if (bounds[i].x < 0)
-					shiftX = -bounds[i].x;
-				if (bounds[i].x > world.Width)
-					shiftX = world.Width - bounds[i].x;
-				if (bounds[i].y < 0)
-					shiftY = -bounds[i].y;
-				if (bounds[i].y > world.Height)
-					shiftY = world.Height - bounds[i].y;
-				me.X += shiftX;
-				me.Y += shiftY;
-				for (int j = 0; j < 4; j++)
-				{
-					bounds[j].x += shiftX;
-					bounds[j].y += shiftY;
-				}
-			}
+			MutableTank.MoveTank(me, moveType, world);			
 
 			/*double dummy;
 			if(Inside(self,bulletX,bulletY,12))
@@ -417,7 +395,9 @@ abstract class ActualStrategy
 		}
 	}
 
-	protected const int startTick = 1780;
+#if TEDDY_BEARS
+	public const int startTick = 1867, endTick = 1868;
+#endif
 
 	protected void AvoidBullets()
 	{
@@ -509,7 +489,7 @@ abstract class ActualStrategy
 			(bonus.Type == BonusType.RepairKit && self.HullDurability <= 40 || bonus.Type == BonusType.Medikit && self.CrewHealth <= 40);
 	}
 
-	static Point[] GetBounds(Unit unit)
+	public static Point[] GetBounds(Unit unit)
 	{
 		return GetBounds(new MutableUnit(unit));
 	}
@@ -1176,7 +1156,7 @@ abstract class ActualStrategy
 				return inf;
 			if (Collide(me, unit,-1))
 				return tick;			
-			MutableTank.MoveTank(me, moveType);
+			MutableTank.MoveTank(me, moveType,world);
 		}
 		return inf;
 	}
