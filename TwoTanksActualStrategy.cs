@@ -7,7 +7,6 @@ using System.Linq;
 class TwoTankskActualStrategy : ActualStrategy
 {
 	Tank teammate;
-	Tank moreImportant;
 	OneTankActualStrategy myOtherSelf = new OneTankActualStrategy();
 	List<Tank> enemies;
 
@@ -36,28 +35,13 @@ class TwoTankskActualStrategy : ActualStrategy
 			return;
 		}
 
-		if (self.TeammateIndex == 0 || IsDead(teammate))
-			moreImportant = self;
-		else
-			moreImportant = teammate;
-
-		/*int myHP = Math.Min(self.CrewHealth, self.HullDurability);
-		int teammateHP = Math.Min(teammate.CrewHealth, teammate.HullDurability);
-		if (IsDead(teammate) || myHP < teammateHP || myHP == teammateHP && self.TeammateIndex == 0)
-			moreImportant = self;
-		else
-			moreImportant = teammate;*/
-
-		bool forward;
-		Bonus bonus;
-		if (self == moreImportant)
+		bool forward, tmForward;
+		Bonus bonus = GetBonus(self, out forward);
+		if (bonus != null)
 		{
-			bonus = GetBonus(self, out forward);
-		}
-		else
-		{
-			Bonus forbidden = GetBonus(teammate, out forward);
-			bonus = GetBonus(self, out forward, forbidden);
+			Bonus tmBonus = GetBonus(teammate, out tmForward);
+			if (tmBonus != null && bonus.Id == tmBonus.Id && TeammateNeedsMore(bonus))
+				bonus = GetBonus(self, out forward, tmBonus);
 		}
 
 #if TEDDY_BEARS
@@ -82,12 +66,12 @@ class TwoTankskActualStrategy : ActualStrategy
 
 		RotateForSafety();
 
-		if (world.Tick > runToCornerTime && AliveEnemyCnt() <= 1)
+		/*if (world.Tick > runToCornerTime && AliveEnemyCnt() <= 1)
 		{
 			var tank = GetMostAngryEnemy();
 			if (tank != null)
 				StayPerpendicular(tank);
-		}
+		}*/
 
 		if (AliveEnemyCnt() == 1 && AliveTeammateCnt() > 1)
 		{
@@ -109,6 +93,26 @@ class TwoTankskActualStrategy : ActualStrategy
 
 		AvoidBullets();
 		prevMove = new MoveType(move.LeftTrackPower, move.RightTrackPower);
+	}
+
+	private bool TeammateNeedsMore(Bonus bonus)
+	{
+		if (bonus.Type == BonusType.AmmoCrate)
+		{
+			if (self.PremiumShellCount != teammate.PremiumShellCount)
+				return self.PremiumShellCount > teammate.PremiumShellCount;
+		}
+		else if (bonus.Type == BonusType.Medikit)
+		{
+			if (self.CrewHealth != teammate.CrewHealth)
+				return self.CrewHealth > teammate.CrewHealth;
+		}
+		else
+		{
+			if (self.HullDurability != teammate.HullDurability)
+				return self.HullDurability > teammate.HullDurability;
+		}
+		return self.TeammateIndex == 1;
 	}
 
 	void MoveToDead()

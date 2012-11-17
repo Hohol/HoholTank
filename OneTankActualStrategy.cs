@@ -32,7 +32,7 @@ class OneTankActualStrategy : ActualStrategy
 		cornerX = cornerY = -1;
 		if (bonus != null && (world.Tick > runToCornerTime || bonus.Type == BonusType.AmmoCrate))
 		{
-			MoveTo(bonus, forward);
+			MoveToBonus(bonus, forward);
 			victim = GetAlmostDead();
 			if (victim == null)
 				victim = GetVictim();
