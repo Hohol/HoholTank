@@ -55,10 +55,11 @@ class TwoTankskActualStrategy : ActualStrategy
 		}
 		else
 		{
-			if (tmBonus == null || world.Tick <= runToCornerTime)
-				MoveBackwards();
-			else
-				MoveNearTo(teammate);
+			MoveBackwards();
+			//if (tmBonus == null || world.Tick <= runToCornerTime)
+				
+			//else
+				//MoveNearTo(teammate,self.Width*2);
 		}
 
 
@@ -150,8 +151,8 @@ class TwoTankskActualStrategy : ActualStrategy
 	void MoveBackwards()
 	{
 		double firstX = self.Height*1.5;// nearest to vertical wall
-		double firstY = self.Width*3; 
-		double secondX = self.Height*2+15;
+		double firstY = self.Width*2.5; 
+		double secondX = self.Height*3+15;
 		double secondY = self.Width*1.5;
 		double vertD = self.Width / 2 + self.Height / 2;
 		if (LeftMost())
@@ -250,22 +251,7 @@ class TwoTankskActualStrategy : ActualStrategy
 		return res;
 	}
 
-	int TeamSize(Tank tank)
-	{
-		int r = 0;
-		foreach (Tank t in world.Tanks)
-			if (tank.PlayerName == t.PlayerName)
-				r++;
-		return r;
-	}
-
-	bool MoreSweet(Tank a, Tank b)
-	{
-		int s1 = TeamSize(a), s2 = TeamSize(b);
-		if (s1 != s2)
-			return s1 > s2;
-		return Math.Min(a.CrewHealth, a.HullDurability) < Math.Min(b.CrewHealth, b.HullDurability);
-	}
+	
 
 	/*static bool Inside(Unit unit, double x, double y, double precision, bool enemy = false)
 	{

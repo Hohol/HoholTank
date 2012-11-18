@@ -49,6 +49,23 @@ abstract class ActualStrategy
 
 	public abstract void Move(Tank self, World world, Move move);
 
+	static protected int TeamSize(Tank tank)
+	{
+		int r = 0;
+		foreach (Tank t in world.Tanks)
+			if (tank.PlayerName == t.PlayerName)
+				r++;
+		return r;
+	}
+
+	static protected bool MoreSweet(Tank a, Tank b)
+	{
+		int s1 = TeamSize(a), s2 = TeamSize(b);
+		if (s1 != s2)
+			return s1 > s2;
+		return Math.Min(a.CrewHealth, a.HullDurability) < Math.Min(b.CrewHealth, b.HullDurability);
+	}
+
 	protected void TryShoot(Unit victim, bool shootOnlyToVictim)
 	{
 		if (self.RemainingReloadingTime > 0)
@@ -1161,14 +1178,14 @@ abstract class ActualStrategy
 		return inf;
 	}
 
-	protected void MoveNearTo(Unit unit)
+	protected void MoveNearTo(Unit unit, double indent)
 	{
 		double dx = unit.X - self.X;
 		double dy = unit.Y - self.Y;
 		double d = Point.dist(0, 0, dx, dy);
 		dx /= d;
 		dy /= d;
-		double indent = self.Width * 1.5;
+		//double indent = self.Width * 1.5;
 		MoveTo(unit.X - dx * indent, unit.Y - dy * indent, dx, dy);
 	}
 
@@ -1181,7 +1198,7 @@ abstract class ActualStrategy
 			MoveTo(bonus, forward);
 		else
 		{
-			MoveNearTo(bonus);
+			MoveNearTo(bonus, self.Width*1.6);
 		}
 	}
 
@@ -1244,9 +1261,7 @@ abstract class ActualStrategy
 			double flyTime = (self.GetDistanceTo(tank) - self.VirtualGunLength) / regularBulletStartSpeed;
 			test += flyTime;
 
-			//test = Math.Min(Math.Abs(tank.GetAngleTo(self)), angleDiff(tank.GetAngleTo(self), Math.PI));
-
-			if (test < mi)
+			if (res == null || test < mi * 0.8 || test < mi * 1.2 && MoreSweet(tank, res))
 			{
 				mi = test;
 				res = tank;
