@@ -812,6 +812,11 @@ abstract class ActualStrategy
 			if (Inside(tank, p.x + dx, p.y + dy, 0))
 				return 1;
 		}
+		foreach (var obst in world.Obstacles)
+		{
+			if (Inside(obst, p.x + dx, p.y + dy, 0))
+				return 1;
+		}
 		return 0;
 	}
 
@@ -961,7 +966,8 @@ abstract class ActualStrategy
 		r = TestCollision(world.Tanks, x, y, tick, enemyPrecision, obstaclePrecision, ignoredUnit);
 		if (r != null)
 			return r;
-		return null;
+		r = TestCollision(world.Obstacles, x, y, tick, enemyPrecision, obstaclePrecision, ignoredUnit);
+		return r;
 	}
 
 	protected Unit EmulateShot(bool premium, out int resTick)
@@ -1237,7 +1243,7 @@ abstract class ActualStrategy
 
 	static protected bool IsDead(Tank tank)
 	{
-		return tank.CrewHealth <= 0 || tank.HullDurability <= 0 || tank.PlayerName == "EmptyPlayer"/**/;
+		return tank.CrewHealth <= 0 || tank.HullDurability <= 0/* || tank.PlayerName == "EmptyPlayer"/**/;
 	}
 
 	static protected double TimeToTurn(Tank self, Unit unit)
@@ -1288,6 +1294,8 @@ abstract class ActualStrategy
 			if (o.Id == self.Id || o.Id == unit.Id)
 				continue;
 			if (o is Tank)
+				return true;
+			if (o is Obstacle)
 				return true;
 			if (o is Bonus && bonusIsObstacle)
 				return true;

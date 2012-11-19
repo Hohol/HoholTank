@@ -57,7 +57,7 @@ class TwoTankskActualStrategy : ActualStrategy
 		{
 			MoveBackwards();
 			//if (tmBonus == null || world.Tick <= runToCornerTime)
-				
+
 			//else
 				//MoveNearTo(teammate,self.Width*2);
 		}
