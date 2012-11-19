@@ -107,6 +107,51 @@ class MutableUnit
 	}
 }
 
+class MutableBullet : MutableUnit
+{
+	ShellType Type;
+	double friction;
+	public MutableBullet(Shell bullet)
+		: base(bullet)
+	{
+		Type = bullet.Type;
+		if (Type == ShellType.Regular)
+			friction = ActualStrategy.regularBulletFriction;
+		else
+			friction = ActualStrategy.premiumBulletFriction;
+	}
+	public MutableBullet(Tank tank, ShellType type)
+	{
+		Angle = tank.Angle + tank.TurretRelativeAngle;
+		double cosa = Math.Cos(Angle);
+		double sina = Math.Sin(Angle);
+		X = tank.X + tank.VirtualGunLength * cosa;
+		Y = tank.Y + tank.VirtualGunLength * sina;
+		Width = ActualStrategy.bulletWidth;
+		Height = ActualStrategy.bulletHeight;
+		Type = type;
+		if (Type == ShellType.Regular)
+		{
+			friction = ActualStrategy.regularBulletFriction;
+			SpeedX = ActualStrategy.regularBulletStartSpeed * cosa;
+			SpeedY = ActualStrategy.regularBulletStartSpeed * sina;
+		}
+		else
+		{
+			friction = ActualStrategy.premiumBulletFriction;
+			SpeedX = ActualStrategy.premiumBulletStartSpeed * cosa;
+			SpeedY = ActualStrategy.premiumBulletStartSpeed * sina;
+		}
+	}
+	public void Move()
+	{
+		SpeedX *= friction;
+		SpeedY *= friction;
+		X += SpeedX;
+		Y += SpeedY;
+	}
+}
+
 class MutableTank : MutableUnit
 {	
 	public double engine_rear_power_factor;
@@ -118,54 +163,54 @@ class MutableTank : MutableUnit
 		crew_health = tank.CrewHealth;
 		bounds = ActualStrategy.GetBounds(tank);
 	}
-	public static void MoveTank(MutableTank tank, MoveType moveType, World world)
+	public void Move(MoveType moveType, World world)
 	{  
 	  TankPhisicsConsts phisics = TankPhisicsConsts.getPhisicsConsts();
 
-	  tank.SpeedX *= phisics.resistMove;
-	  tank.SpeedY *= phisics.resistMove;
-	  tank.AngularSpeed *= phisics.resistRotate;
+	  SpeedX *= phisics.resistMove;
+	  SpeedY *= phisics.resistMove;
+	  AngularSpeed *= phisics.resistRotate;
 
-	  double life = tank.crew_health / 200.0 + 0.5;
+	  double life = crew_health / 200.0 + 0.5;
 
-	  double leftAcc = (moveType.LeftTrackPower >= 0 ? moveType.LeftTrackPower : moveType.LeftTrackPower * tank.engine_rear_power_factor);
-	  double rightAcc = (moveType.RightTrackPower >= 0 ? moveType.RightTrackPower : moveType.RightTrackPower * tank.engine_rear_power_factor);
+	  double leftAcc = (moveType.LeftTrackPower >= 0 ? moveType.LeftTrackPower : moveType.LeftTrackPower * engine_rear_power_factor);
+	  double rightAcc = (moveType.RightTrackPower >= 0 ? moveType.RightTrackPower : moveType.RightTrackPower * engine_rear_power_factor);
 
 	  double accMove= life * phisics.accMove * (leftAcc + rightAcc);         
-	  tank.SpeedX += accMove * Math.Cos(tank.Angle);
-	  tank.SpeedY += accMove * Math.Sin(tank.Angle);
+	  SpeedX += accMove * Math.Cos(Angle);
+	  SpeedY += accMove * Math.Sin(Angle);
 
-	  tank.X += tank.SpeedX;
-	  tank.Y += tank.SpeedY;
+	  X += SpeedX;
+	  Y += SpeedY;
 
 	  double accRotate = life * phisics.accRotate * (leftAcc - rightAcc);         
-	  tank.AngularSpeed += accRotate;
-	  tank.Angle += tank.AngularSpeed;
+	  AngularSpeed += accRotate;
+	  Angle += AngularSpeed;
 
 	  for (int i = 0; i < 4; i++)
 	  {
-		  tank.bounds[i].x += tank.SpeedX;
-		  tank.bounds[i].y += tank.SpeedY;
+		  bounds[i].x += SpeedX;
+		  bounds[i].y += SpeedY;
 	  }
 
 	  for (int i = 0; i < 4; i++)
 	  {
 		  double shiftX = 0;
 		  double shiftY = 0;
-		  if (tank.bounds[i].x < 0)
-			  shiftX = -tank.bounds[i].x;
-		  if (tank.bounds[i].x > world.Width)
-			  shiftX = world.Width - tank.bounds[i].x;
-		  if (tank.bounds[i].y < 0)
-			  shiftY = -tank.bounds[i].y;
-		  if (tank.bounds[i].y > world.Height)
-			  shiftY = world.Height - tank.bounds[i].y;
-		  tank.X += shiftX;
-		  tank.Y += shiftY;
+		  if (bounds[i].x < 0)
+			  shiftX = -bounds[i].x;
+		  if (bounds[i].x > world.Width)
+			  shiftX = world.Width - bounds[i].x;
+		  if (bounds[i].y < 0)
+			  shiftY = -bounds[i].y;
+		  if (bounds[i].y > world.Height)
+			  shiftY = world.Height - bounds[i].y;
+		  X += shiftX;
+		  Y += shiftY;
 		  for (int j = 0; j < 4; j++)
 		  {
-			  tank.bounds[j].x += shiftX;
-			  tank.bounds[j].y += shiftY;
+			  bounds[j].x += shiftX;
+			  bounds[j].y += shiftY;
 		  }
 	  }
 	}

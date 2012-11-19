@@ -72,6 +72,9 @@ class OneTankActualStrategy : ActualStrategy
 		ManageStuck();
 		//if (victim != null)
 			//TurnTo(victim.X,victim.Y);
+#if TEDDY_BEARS
+		//move.FireType = FireType.None;
+#endif
 		AvoidBullets();
 		prevMove = new MoveType(move.LeftTrackPower, move.RightTrackPower);
 	}

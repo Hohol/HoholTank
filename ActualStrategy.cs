@@ -9,17 +9,17 @@ abstract class ActualStrategy
 	protected const double inf = 1e20;
 	protected const int medikitVal = 35;
 	protected const int repairVal = 50;
-	protected const double regularBulletFriction = 0.995;
-	protected const double premiumBulletFriction = 0.99;
-	protected const double regularBulletStartSpeed = 16.500438538620 / regularBulletFriction;
-	protected const double premiumBulletStartSpeed = 13.068000645325 / premiumBulletFriction;
+	public const double regularBulletFriction = 0.995;
+	public const double premiumBulletFriction = 0.99;
+	public const double regularBulletStartSpeed = 16.500438538620 / regularBulletFriction;
+	public const double premiumBulletStartSpeed = 13.068000645325 / premiumBulletFriction;
 	const double premiumShotDistance = 850;
 	protected const double ricochetAngle = Math.PI / 3;
 	protected const string myName = "Hohol";
 	protected readonly double diagonalLen = Math.Sqrt(1280 * 1280 + 800 * 800);
 	protected const double stayPerpendicularDistance = 800 * 3/4;
-	const double bulletWidth = 22.5;
-	const double bulletHeight = 7.5;
+	public const double bulletWidth = 22.5;
+	public const double bulletHeight = 7.5;
 
 	const int stuckDetectTickCnt = 100;
 	bool stuckEscapeForward;
@@ -97,8 +97,10 @@ abstract class ActualStrategy
 			return true;
 		if (aim is Tank && ((Tank)aim).IsTeammate)
 			return true;
-		if (aim is Tank && bulletType == ShellType.Premium && CanEscape((Tank)aim, bulletType))
+		if(aim is Tank && CanEscape((Tank)aim,bulletType))
 			return true;
+		//if (aim is Tank && bulletType == ShellType.Premium && CanEscape((Tank)aim, bulletType))
+//			return true;
 		return false;
 	}
 
@@ -342,7 +344,7 @@ abstract class ActualStrategy
 			/*if(moveType.LeftTrackPower >= 0.15 && moveType.LeftTrackPower <= 0.25 && moveType.RightTrackPower == 1)
 				file.WriteLine(world.Tick + " " + me.X + " " + me.Y + " " + me.Angle);*/
 
-			MutableTank.MoveTank(me, moveType, world);			
+			me.Move(moveType, world);			
 
 			/*double dummy;
 			if(Inside(self,bulletX,bulletY,12))
@@ -413,7 +415,7 @@ abstract class ActualStrategy
 	}
 
 #if TEDDY_BEARS
-	public const int startTick = 1867, endTick = 1868;
+	//public const int startTick = 1867, endTick = 1868;
 #endif
 
 	protected void AvoidBullets()
@@ -434,18 +436,33 @@ abstract class ActualStrategy
 				foreach(var curMove in curMoves)
 					if (!Menace(self, bullet, curMove))
 					{
-						/*if (self.Y > world.Height / 2 && world.Tick >= startTick)
-						{
-							MutableTank me = new MutableTank(self);
-							MutableTank.MoveTank(me, curMove);
-							file.WriteLine("teor " + world.Tick + " " + me.X + " " + me.Y + " " + me.Angle + curMove.LeftTrackPower + " " + curMove.RightTrackPower);
-						}*/
 						move.LeftTrackPower = curMove.LeftTrackPower;
 						move.RightTrackPower = curMove.RightTrackPower;
 						return;
 					}
+				if (self.RemainingReloadingTime == 0)
+				{
+					if (ShootSaves(bullet))
+					{
+						move.FireType = FireType.Regular;
+					}
+				}
 			}
 		}
+	}
+
+	private bool ShootSaves(Shell bullet)
+	{
+		MutableBullet a = new MutableBullet(bullet);
+		MutableBullet b = new MutableBullet(self, ShellType.Regular);
+		for (int i = 0; i < 100; i++)
+		{
+			if (Collide(a, b, 0))
+				return true;
+			a.Move();
+			b.Move();
+		}
+		return false;
 	}
 
 	int experimentTick = 0;
@@ -1179,7 +1196,7 @@ abstract class ActualStrategy
 				return inf;
 			if (Collide(me, unit,-1))
 				return tick;			
-			MutableTank.MoveTank(me, moveType,world);
+			me.Move(moveType,world);
 		}
 		return inf;
 	}
@@ -1243,7 +1260,7 @@ abstract class ActualStrategy
 
 	static protected bool IsDead(Tank tank)
 	{
-		return tank.CrewHealth <= 0 || tank.HullDurability <= 0/* || tank.PlayerName == "EmptyPlayer"/**/;
+		return tank.CrewHealth <= 0 || tank.HullDurability <= 0 || tank.PlayerName == "EmptyPlayer"/**/;
 	}
 
 	static protected double TimeToTurn(Tank self, Unit unit)
@@ -1264,6 +1281,7 @@ abstract class ActualStrategy
 				test = inf / 2;
 			if (ObstacleBetween(self, tank, true))
 				test = inf / 2;
+			test = Math.Max(test, self.RemainingReloadingTime);
 			double flyTime = (self.GetDistanceTo(tank) - self.VirtualGunLength) / regularBulletStartSpeed;
 			test += flyTime;
 

@@ -63,7 +63,7 @@ class TwoTankskActualStrategy : ActualStrategy
 		}
 
 
-		Tank victim = GetWithSmallestDistSum();
+		Tank victim = GetVictim();//GetWithSmallestDistSum();
 		if (victim != null)
 			TurnToMovingTank(victim, false);
 
