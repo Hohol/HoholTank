@@ -117,7 +117,7 @@ abstract class ActualStrategy
 			Point d = new Point(dx, dy);
 			Point oMe = o - me;
 
-			if (Point.scalar(oMe, d) > 0/* && self.GetDistanceTo(x,y) > self.Width*/)
+			if (Point.Scalar(oMe, d) > 0/* && self.GetDistanceTo(x,y) > self.Width*/)
 			{
 				MoveTo(x, y, true);
 			}
@@ -1298,9 +1298,41 @@ abstract class ActualStrategy
 		return res;
 	}
 
+	static bool ObstacleBetween(Tank self, Unit unit, Unit[] ar)
+	{
+		foreach (Unit obs in ar)
+		{
+			if (obs.Id == self.Id || obs.Id == unit.Id)
+				return false;
+			Point me = new Point(self);
+			Point o = new Point(obs);
+			Point U = new Point(unit);
+			if (Point.Scalar(U.x - me.x, U.y - me.y, o.x - me.x, o.y - me.y) < 0)
+				return false;
+			if (Point.Scalar(me.x - U.x, me.y - U.y, o.x - U.x, o.y - U.y) < 0)
+				return false;
+			double d = self.GetDistanceTo(unit);
+			double s = Point.wp(o, me, U);
+			double h = Math.Abs(s) / d;
+			if (h < obs.Width/2)
+				return true;
+		}
+		return false;
+	}
+
 	static protected bool ObstacleBetween(Tank self, Unit unit, bool bonusIsObstacle)
 	{
-		const int stepCnt = 100;
+		if (ObstacleBetween(self, unit, world.Tanks))
+			return true;
+		if (ObstacleBetween(self, unit, world.Obstacles))
+			return true;
+		if (bonusIsObstacle)
+		{
+			if (ObstacleBetween(self, unit, world.Bonuses))
+				return true;
+		}
+		return false;
+		/*const int stepCnt = 100;
 		double dx = (unit.X - self.X) / stepCnt;
 		double dy = (unit.Y - self.Y) / stepCnt;
 		double x = self.X;
@@ -1322,7 +1354,7 @@ abstract class ActualStrategy
 			if (o is Bonus && bonusIsObstacle)
 				return true;
 		}
-		return false;
+		return false;*/
 	}
 
 	static protected int AliveEnemyCnt()

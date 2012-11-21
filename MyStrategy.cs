@@ -255,7 +255,11 @@ class Point
 	{
 		return wp(b - a, c - a);
 	}
-	static public double scalar(Point a, Point b)
+	static public double Scalar(double x1, double y1, double x2, double y2)
+	{
+		return x1 * x2 + y1 * y2;
+	}
+	static public double Scalar(Point a, Point b)
 	{
 		return a.x * b.x + a.y * b.y;
 	}
