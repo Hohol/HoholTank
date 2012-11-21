@@ -429,6 +429,8 @@ abstract class ActualStrategy
 		curMoves = curMoves.OrderBy(
 			m => Math.Abs(m.LeftTrackPower - move.LeftTrackPower)
 			   + Math.Abs(m.RightTrackPower - move.RightTrackPower)).ToList();
+
+
 		foreach (var bullet in bullets)
 		{
 			if (Menace(self, bullet,new MoveType(move.LeftTrackPower,move.RightTrackPower)))
@@ -528,7 +530,7 @@ abstract class ActualStrategy
 		return GetBounds(new MutableUnit(unit));
 	}
 
-	static Point[] GetBounds(MutableUnit unit)
+	public static Point[] GetBounds(MutableUnit unit)
 	{
 		double tx = unit.X;
 		double ty = unit.Y;
@@ -610,7 +612,7 @@ abstract class ActualStrategy
 
 		Point bullet = new Point(bulletX, bulletY);
 
-		Point[] ar = GetBounds(tank);
+		Point[] ar = tank.GetBounds();
 
 		Point a = ar[0], b = ar[1], c = ar[2], d = ar[3];
 
@@ -743,8 +745,8 @@ abstract class ActualStrategy
 
 	bool Collide(MutableUnit a, MutableUnit b, double precision)
 	{
-		Point[] aBounds = GetBounds(a);
-		Point[] bBounds = GetBounds(b);
+		Point[] aBounds = a.GetBounds();
+		Point[] bBounds = b.GetBounds();
 		foreach (var p in aBounds)
 			if (Inside(b, p.x, p.y, precision))
 				return true;
