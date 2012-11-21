@@ -42,12 +42,75 @@ abstract class ActualStrategy
 	protected Move move;
 
 	public static HashSet<string> smartAss;
+	protected List<Tank> enemies;
+	protected List<Tank> teammates;
 
 #if TEDDY_BEARS
 	public static StreamWriter file;//, teorFile, realFile;
 #endif
 
 	public abstract void Move(Tank self, World world, Move move);
+	public void CommonMove(Tank self, World world, Move move)
+	{
+		this.self = self;
+		ActualStrategy.world = world;
+		this.move = move;
+		enemies = new List<Tank>();
+		foreach (Tank tank in world.Tanks)
+			if (!IsDead(tank) && !tank.IsTeammate)
+				enemies.Add(tank);
+
+		historyX[world.Tick] = self.X;
+		historyY[world.Tick] = self.Y;
+
+		teammates = new List<Tank>();
+		foreach (Tank tank in world.Tanks)
+			if (tank.IsTeammate && tank.Id != self.Id)
+				teammates.Add(tank);
+
+		/////////////////
+		Move(self, world, move);
+		/////////////////
+
+		ManageStuck();
+		AvoidBullets();
+		ManageStuck();
+		prevMove = new MoveType(move.LeftTrackPower, move.RightTrackPower);
+
+	}
+
+	bool TeammateNeedsMore(Bonus bonus, Tank teammate)
+	{
+		if (bonus.Type == BonusType.AmmoCrate)
+		{
+			if (self.PremiumShellCount != teammate.PremiumShellCount)
+				return self.PremiumShellCount > teammate.PremiumShellCount;
+		}
+		else if (bonus.Type == BonusType.Medikit)
+		{
+			if (self.CrewHealth != teammate.CrewHealth)
+				return self.CrewHealth > teammate.CrewHealth;
+		}
+		else
+		{
+			if (self.HullDurability != teammate.HullDurability)
+				return self.HullDurability > teammate.HullDurability;
+		}
+		return self.TeammateIndex == 1;
+	}
+
+	protected Bonus GetBonus(out bool forward)
+	{
+		var forbidden = new HashSet<long>();
+		foreach (Tank tm in teammates)
+		{
+			bool dummy;
+			Bonus b = GetBonus(tm, out dummy, null);
+			if (b != null && TeammateNeedsMore(b, tm))
+				forbidden.Add(b.Id);
+		}
+		return GetBonus(self, out forward, forbidden);		
+	}
 
 	static protected int TeamSize(Tank tank)
 	{
@@ -311,7 +374,7 @@ abstract class ActualStrategy
 			bool can = true;
 			foreach (var p in bounds)
 			{
-				if (Menace(tank, bulletX, bulletY, bulletSpeedX, bulletSpeedY, bulletType, moveType))
+				if (Menace(tank, bulletX, bulletY, bulletSpeedX, bulletSpeedY, bulletType, moveType,3,-1))
 				{
 					can = false;
 					break;
@@ -323,7 +386,8 @@ abstract class ActualStrategy
 		return false;
 	}
 
-	static bool Menace(Tank self, double bulletX, double bulletY, double bulletSpeedX, double bulletSpeedY, ShellType bulletType, MoveType moveType)
+	static bool Menace(Tank self, double bulletX, double bulletY, double bulletSpeedX, double bulletSpeedY, ShellType bulletType, MoveType moveType,
+		double premiumPrecision, double regularPrecision)
 	{
 		double friction;
 		if (bulletType == ShellType.Regular)
@@ -353,9 +417,9 @@ abstract class ActualStrategy
 			}*/
 			double precision;
 			if (bulletType == ShellType.Premium)
-				precision = 3;
+				precision = premiumPrecision;
 			else
-				precision = 0;
+				precision = regularPrecision;
 			double anglePrecision = Math.PI / 10;
 			if (!self.IsTeammate)
 			{
@@ -381,12 +445,12 @@ abstract class ActualStrategy
 		return false;
 	}
 
-	static bool Menace(Tank self, Shell bullet, MoveType moveType)
+	static bool Menace(Tank self, Shell bullet, MoveType moveType, double premiumPrecision, double regularPrecision)
 	{
 		Point[] bounds = GetBounds(bullet);
 		foreach (var p in bounds)
 		{
-			if (Menace(self, p.x, p.y, bullet.SpeedX, bullet.SpeedY, bullet.Type, moveType))
+			if (Menace(self, p.x, p.y, bullet.SpeedX, bullet.SpeedY, bullet.Type, moveType,premiumPrecision,regularPrecision))
 				return true;
 		}
 		return false;
@@ -429,14 +493,13 @@ abstract class ActualStrategy
 		curMoves = curMoves.OrderBy(
 			m => Math.Abs(m.LeftTrackPower - move.LeftTrackPower)
 			   + Math.Abs(m.RightTrackPower - move.RightTrackPower)).ToList();
-
-
+		double premiumPrecision = 4, regularPrecision = 0;
 		foreach (var bullet in bullets)
 		{
-			if (Menace(self, bullet,new MoveType(move.LeftTrackPower,move.RightTrackPower)))
+			if (Menace(self, bullet,new MoveType(move.LeftTrackPower,move.RightTrackPower),premiumPrecision,regularPrecision))
 			{
 				foreach(var curMove in curMoves)
-					if (!Menace(self, bullet, curMove))
+					if (!Menace(self, bullet, curMove,premiumPrecision,regularPrecision))
 					{
 						move.LeftTrackPower = curMove.LeftTrackPower;
 						move.RightTrackPower = curMove.RightTrackPower;
@@ -769,10 +832,11 @@ abstract class ActualStrategy
 		if (x < unit.X - w || x > unit.X + w ||  // w must be greater than h
 		   y < unit.Y - w || y > unit.Y + w)
 			return false;
+
 		double d = unit.GetDistanceTo(x, y);
 		double angle = unit.GetAngleTo(x, y);
 		x = d * Math.Cos(angle);
-		y = d * Math.Sin(angle);		
+		y = d * Math.Sin(angle);
 		double lx = -w, rx = w;
 		double ly = -h, ry = h;
 		return x >= -w && x <= w &&
@@ -1300,7 +1364,7 @@ abstract class ActualStrategy
 		return res;
 	}
 
-	static bool ObstacleBetween(Tank self, Unit unit, Unit[] ar)
+		static bool ObstacleBetween(Tank self, Unit unit, Unit[] ar)
 	{
 		foreach (Unit obs in ar)
 		{
@@ -1465,14 +1529,14 @@ abstract class ActualStrategy
 		return r + (10000 - dist);
 	}
 
-	static protected Bonus GetBonus(Tank self, out bool forward, Bonus forbidden = null)
+	static protected Bonus GetBonus(Tank self, out bool forward, HashSet<long> forbidden)
 	{
 		double ma = 0;
 		Bonus res = null;
 		forward = true;
 		foreach (var bonus in world.Bonuses)
 		{
-			if (bonus == forbidden)
+			if (forbidden != null && forbidden.Contains(bonus.Id))
 				continue;
 			double test = Importance(self, bonus, true);
 			if (test > ma)

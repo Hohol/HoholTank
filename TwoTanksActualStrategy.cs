@@ -7,42 +7,23 @@ using System.Linq;
 class TwoTankskActualStrategy : ActualStrategy
 {
 	Tank teammate;
-	OneTankActualStrategy myOtherSelf = new OneTankActualStrategy();
-	List<Tank> enemies;
+	OneTankActualStrategy myOtherSelf = new OneTankActualStrategy();	
 
 	override public void Move(Tank self, World world, Move move)
 	{
-		this.self = self;
-		ActualStrategy.world = world;
-		this.move = move;
-
-		historyX[world.Tick] = self.X;
-		historyY[world.Tick] = self.Y;
-		enemies = new List<Tank>();
-		foreach (Tank tank in world.Tanks)
-			if (!IsDead(tank) && !tank.IsTeammate)
-				enemies.Add(tank);
 		myOtherSelf.historyX[world.Tick] = self.X;
 		myOtherSelf.historyY[world.Tick] = self.Y;
 
-		foreach (var tank in world.Tanks)
-			if (tank.Id != self.Id && tank.IsTeammate)
-				teammate = tank;
+		teammate = teammates[0];
 
 		if (IsDead(teammate))
 		{
-			myOtherSelf.Move(self, world, move);
+			myOtherSelf.CommonMove(self, world, move);
 			return;
 		}
 
-		bool forward, tmForward;
-		Bonus bonus = GetBonus(self, out forward);
-		Bonus tmBonus = GetBonus(teammate, out tmForward);
-		if (bonus != null)
-		{
-			if (tmBonus != null && bonus.Id == tmBonus.Id && TeammateNeedsMore(bonus))
-				bonus = GetBonus(self, out forward, tmBonus);
-		}
+		bool forward;
+		Bonus bonus = GetBonus(out forward);
 
 #if TEDDY_BEARS
 		//bonus = null;
@@ -56,12 +37,7 @@ class TwoTankskActualStrategy : ActualStrategy
 		else
 		{
 			MoveBackwards();
-			//if (tmBonus == null || world.Tick <= runToCornerTime)
-
-			//else
-				//MoveNearTo(teammate,self.Width*2);
 		}
-
 
 		Tank victim = GetVictim();//GetWithSmallestDistSum();
 		if (victim != null)
@@ -78,7 +54,7 @@ class TwoTankskActualStrategy : ActualStrategy
 				StayPerpendicular(tank);
 		}*/
 
-		if (AliveEnemyCnt() == 1 && AliveTeammateCnt() > 1)
+		if (AliveEnemyCnt() == 1)
 		{
 			Tank enemy = PickEnemy();
 			double myDist = self.GetDistanceTo(enemy);
@@ -91,38 +67,7 @@ class TwoTankskActualStrategy : ActualStrategy
 
 		if (world.Tick > runToCornerTime && victim != null && !HaveTimeToTurn(victim) && !bonusSaves)
 			TurnToMovingTank(victim, true);
-
-		//MoveToDead();
-
-		ManageStuck();
-
-		AvoidBullets();
-		prevMove = new MoveType(move.LeftTrackPower, move.RightTrackPower);
-		/*if (world.Tick >= startTick && self.Y > world.Height / 2)
-		{
-			file.WriteLine("real " + world.Tick + " " + self.X + " " + self.Y + " " + self.Angle);
-		}*/
-	}
-
-	private bool TeammateNeedsMore(Bonus bonus)
-	{
-		if (bonus.Type == BonusType.AmmoCrate)
-		{
-			if (self.PremiumShellCount != teammate.PremiumShellCount)
-				return self.PremiumShellCount > teammate.PremiumShellCount;
-		}
-		else if (bonus.Type == BonusType.Medikit)
-		{
-			if (self.CrewHealth != teammate.CrewHealth)
-				return self.CrewHealth > teammate.CrewHealth;
-		}
-		else
-		{
-			if (self.HullDurability != teammate.HullDurability)
-				return self.HullDurability > teammate.HullDurability;
-		}
-		return self.TeammateIndex == 1;
-	}
+	}	
 
 	void MoveToDead()
 	{

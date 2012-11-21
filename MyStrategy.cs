@@ -38,8 +38,10 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			};
 			if (teamSize == 1)
 				strat = new OneTankActualStrategy();
-			else
+			else if (teamSize == 2)
 				strat = new TwoTankskActualStrategy();
+			else
+				strat = new ThreeTanksActualStrategy();
 			return TankType.Medium;
 		}
 		public void Move(Tank self, World world, Move move)
@@ -48,7 +50,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			/*if(world.Tick < ActualStrategy.startTick || world.Tick > ActualStrategy.endTick)
 				return;/**/
 #endif
-			strat.Move(self, world, move);
+			strat.CommonMove(self, world, move);
 		}
 	}
 }
@@ -103,7 +105,7 @@ class MutableUnit
 	}
 	public double GetAngleTo(double x, double y)
 	{
-		double r = Point.dist(X, Y, x, y);
+		//double r = Point.dist(X, Y, x, y);
 		double angle = Math.Atan2(y - Y, x - X);
 		angle -= Angle;
 		while (angle > 2 * Math.PI)
@@ -117,7 +119,7 @@ class MutableUnit
 class MutableBullet : MutableUnit
 {
 	ShellType Type;
-	double friction;	
+	double friction;
 	public MutableBullet(Shell bullet)
 		: base(bullet)
 	{
@@ -167,18 +169,19 @@ class MutableBullet : MutableUnit
 }
 
 class MutableTank : MutableUnit
-{
-	TankPhisicsConsts phisics = TankPhisicsConsts.getPhisicsConsts();
+{	
 	public double engine_rear_power_factor;
-	public int crew_health;	
+	public int crew_health;
+	TankPhisicsConsts phisics = TankPhisicsConsts.getPhisicsConsts();
 	public MutableTank(Tank tank) : base(tank)
 	{		
 		engine_rear_power_factor = tank.EngineRearPowerFactor;
 		crew_health = tank.CrewHealth;
+		bounds = ActualStrategy.GetBounds(tank);
 	}
 	public void Move(MoveType moveType, World world)
 	{
-	  GetBounds();	  
+		GetBounds();
 
 	  SpeedX *= phisics.resistMove;
 	  SpeedY *= phisics.resistMove;
@@ -199,7 +202,7 @@ class MutableTank : MutableUnit
 	  double accRotate = life * phisics.accRotate * (leftAcc - rightAcc);         
 	  AngularSpeed += accRotate;
 	  Angle += AngularSpeed;
-	  
+
 	  for (int i = 0; i < 4; i++)
 	  {
 		  bounds[i].x += SpeedX;
@@ -268,13 +271,13 @@ class Point
 	{
 		return wp(b - a, c - a);
 	}
-	static public double Scalar(double x1, double y1, double x2, double y2)
-	{
-		return x1 * x2 + y1 * y2;
-	}
 	static public double Scalar(Point a, Point b)
 	{
 		return a.x * b.x + a.y * b.y;
+	}
+	static public double Scalar(double x1, double y1, double x2, double y2)
+	{
+		return x1 * x2 + y1 * y2;
 	}
 	static public double Atan2(Point a)
 	{
