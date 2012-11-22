@@ -8,11 +8,23 @@ class OneTankActualStrategy : ActualStrategy
 	const int firstShootTick = 4;
 	override public void Move(Tank self, World world, Move move)
 	{
+		this.self = self;
+		ActualStrategy.world = world;
+		this.move = move;
+
+		historyX[world.Tick] = self.X;
+		historyY[world.Tick] = self.Y;
+
+		/*if (AliveEnemyCnt() == 0)
+		{
+			Experiment();
+			return;
+		}/**/
+
 		bool forward;
-		Bonus bonus = GetBonus(out forward);
+		Bonus bonus = GetBonus(self, out forward);
 #if TEDDY_BEARS
-		if(AliveEnemyCnt() == 0)
-			bonus = null;
+		//bonus = null;
 #endif
 		Tank victim = null;
 
@@ -56,13 +68,15 @@ class OneTankActualStrategy : ActualStrategy
 			if (tank != null)
 				StayPerpendicular(tank);
 		}
-		/*if (AliveEnemyCnt() == 0)
-		{
-			if (world.Tick / 500 % 2 == 1)
-				MoveTo(world.Width / 2, world.Height / 4, true);
-			else
-				MoveTo(world.Width / 2, world.Height / 4 * 3, true);
-		}*/
+
+		ManageStuck();
+		//if (victim != null)
+			//TurnTo(victim.X,victim.Y);
+#if TEDDY_BEARS
+		//move.FireType = FireType.None;
+#endif
+		AvoidBullets();
+		prevMove = new MoveType(move.LeftTrackPower, move.RightTrackPower);
 	}
 
 	/*protected override bool BadAim(Unit aim, Unit victim, bool shootOnlyToVictim, double x, double y, ShellType bulletType)

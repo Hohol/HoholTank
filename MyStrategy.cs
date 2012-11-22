@@ -38,10 +38,8 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			};
 			if (teamSize == 1)
 				strat = new OneTankActualStrategy();
-			else if (teamSize == 2)
-				strat = new TwoTankskActualStrategy();
 			else
-				strat = new ThreeTanksActualStrategy();
+				strat = new TwoTankskActualStrategy();
 			return TankType.Medium;
 		}
 		public void Move(Tank self, World world, Move move)
@@ -50,7 +48,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			/*if(world.Tick < ActualStrategy.startTick || world.Tick > ActualStrategy.endTick)
 				return;/**/
 #endif
-			strat.CommonMove(self, world, move);
+			strat.Move(self, world, move);
 		}
 	}
 }
@@ -78,7 +76,6 @@ class TankPhisicsConsts
 
 class MutableUnit
 {
-	protected Point[] bounds;
 	public double Angle, Y, X, Width, Height, SpeedX, SpeedY, AngularSpeed;
 	public MutableUnit() { }
 	public MutableUnit(Unit unit)
@@ -93,19 +90,13 @@ class MutableUnit
 		Width = unit.Width;
 		Height = unit.Height;
 	}
-	public Point[] GetBounds()
-	{
-		if (bounds == null)
-			bounds = ActualStrategy.GetBounds(this);
-		return bounds;
-	}
 	public double GetDistanceTo(double x, double y)
 	{
 		return Point.dist(X, Y, x, y);
 	}
 	public double GetAngleTo(double x, double y)
 	{
-		//double r = Point.dist(X, Y, x, y);
+		double r = Point.dist(X, Y, x, y);
 		double angle = Math.Atan2(y - Y, x - X);
 		angle -= Angle;
 		while (angle > 2 * Math.PI)
@@ -154,17 +145,10 @@ class MutableBullet : MutableUnit
 	}
 	public void Move()
 	{
-		if (bounds == null)
-			bounds = ActualStrategy.GetBounds(this);
 		SpeedX *= friction;
 		SpeedY *= friction;
 		X += SpeedX;
 		Y += SpeedY;
-		for (int i = 0; i < 4; i++)
-		{
-			bounds[i].x += SpeedX;
-			bounds[i].y += SpeedY;
-		}
 	}
 }
 
@@ -172,7 +156,7 @@ class MutableTank : MutableUnit
 {	
 	public double engine_rear_power_factor;
 	public int crew_health;
-	TankPhisicsConsts phisics = TankPhisicsConsts.getPhisicsConsts();
+	Point[] bounds;
 	public MutableTank(Tank tank) : base(tank)
 	{		
 		engine_rear_power_factor = tank.EngineRearPowerFactor;
@@ -180,8 +164,8 @@ class MutableTank : MutableUnit
 		bounds = ActualStrategy.GetBounds(tank);
 	}
 	public void Move(MoveType moveType, World world)
-	{
-		GetBounds();
+	{  
+	  TankPhisicsConsts phisics = TankPhisicsConsts.getPhisicsConsts();
 
 	  SpeedX *= phisics.resistMove;
 	  SpeedY *= phisics.resistMove;
@@ -271,13 +255,9 @@ class Point
 	{
 		return wp(b - a, c - a);
 	}
-	static public double Scalar(Point a, Point b)
+	static public double scalar(Point a, Point b)
 	{
 		return a.x * b.x + a.y * b.y;
-	}
-	static public double Scalar(double x1, double y1, double x2, double y2)
-	{
-		return x1 * x2 + y1 * y2;
 	}
 	static public double Atan2(Point a)
 	{
