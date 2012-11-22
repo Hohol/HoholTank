@@ -69,26 +69,6 @@ class TwoTankskActualStrategy : ActualStrategy
 			TurnToMovingTank(victim, true);
 	}	
 
-	private bool TeammateNeedsMore(Bonus bonus)
-	{
-		if (bonus.Type == BonusType.AmmoCrate)
-		{
-			if (self.PremiumShellCount != teammate.PremiumShellCount)
-				return self.PremiumShellCount > teammate.PremiumShellCount;
-		}
-		else if (bonus.Type == BonusType.Medikit)
-		{
-			if (self.CrewHealth != teammate.CrewHealth)
-				return self.CrewHealth > teammate.CrewHealth;
-		}
-		else
-		{
-			if (self.HullDurability != teammate.HullDurability)
-				return self.HullDurability > teammate.HullDurability;
-		}
-		return self.TeammateIndex == 1;
-	}
-
 	void MoveToDead()
 	{
 		foreach (Tank tank in world.Tanks)

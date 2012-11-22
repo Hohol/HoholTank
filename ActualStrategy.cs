@@ -140,15 +140,15 @@ abstract class ActualStrategy
 		if (BadAim(aimReg, victim, shootOnlyToVictim, ShellType.Regular))
 			aimReg = null;
 		if (BadAim(aimPrem, victim, shootOnlyToVictim, ShellType.Premium))
-			aimPrem = null;		
+			aimPrem = null;
 
 		if (aimPrem != null && ((Tank)aimPrem).HullDurability > 20)
 			move.FireType = FireType.Premium;
 		else if (aimReg != null)
 		{
-			double angle = GetCollisionAngle((Tank)aimReg, resTick);
-			if (double.IsNaN(angle) || angle < ricochetAngle - Math.PI / 10)
-				move.FireType = FireType.Regular;
+			move.FireType = FireType.Regular;
+			//double angle = GetCollisionAngle((Tank)aimReg, resTick);
+			//if (double.IsNaN(angle) || angle < ricochetAngle - Math.PI / 10)			
 		}
 	}
 
@@ -156,15 +156,26 @@ abstract class ActualStrategy
 	{
 		if (aim == null)
 			return true;
-		if (!(aim is Tank) || IsDead((Tank)aim) || shootOnlyToVictim && victim != null && aim.Id != victim.Id)
+		if (!(aim is Tank))
 			return true;
-		if (aim is Tank && ((Tank)aim).IsTeammate)
+		Tank tank = (Tank)aim;
+		if (IsDead(tank) || shootOnlyToVictim && victim != null && tank.Id != victim.Id)
 			return true;
-		if(aim is Tank && CanEscape((Tank)aim,bulletType))
+		if (tank.IsTeammate)
 			return true;
-		//if (aim is Tank && bulletType == ShellType.Premium && CanEscape((Tank)aim, bulletType))
-//			return true;
-		return false;
+
+		if (bulletType == ShellType.Premium)
+			return CanEscape(tank, bulletType);
+
+		if (self.GetDistanceTo(aim) > world.Height)
+		{
+			return false;
+		}
+		else
+		{
+			return CanEscape(tank, bulletType);
+		}
+		//return false;
 	}
 
 	protected void MoveTo(double x, double y, double dx, double dy)
@@ -416,7 +427,7 @@ abstract class ActualStrategy
 			}*/
 			double precision;
 			if (bulletType == ShellType.Premium)
-				precision = 3;
+				precision = 4;
 			else
 				precision = 0;
 			double anglePrecision = Math.PI / 10;

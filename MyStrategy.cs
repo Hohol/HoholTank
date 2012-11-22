@@ -38,8 +38,10 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			};
 			if (teamSize == 1)
 				strat = new OneTankActualStrategy();
-			else
+			else if (teamSize == 2)
 				strat = new TwoTankskActualStrategy();
+			else
+				strat = new ThreeTanksActualStrategy();
 			return TankType.Medium;
 		}
 		public void Move(Tank self, World world, Move move)
