@@ -11,7 +11,8 @@ class OneTankActualStrategy : ActualStrategy
 		bool forward;
 		Bonus bonus = GetBonus(out forward);
 #if TEDDY_BEARS
-		//bonus = null;
+		if(AliveEnemyCnt() == 0)
+			bonus = null;
 #endif
 		Tank victim = null;
 
@@ -55,8 +56,13 @@ class OneTankActualStrategy : ActualStrategy
 			if (tank != null)
 				StayPerpendicular(tank);
 		}
-
-		
+		/*if (AliveEnemyCnt() == 0)
+		{
+			if (world.Tick / 500 % 2 == 1)
+				MoveTo(world.Width / 2, world.Height / 4, true);
+			else
+				MoveTo(world.Width / 2, world.Height / 4 * 3, true);
+		}*/
 	}
 
 	/*protected override bool BadAim(Unit aim, Unit victim, bool shootOnlyToVictim, double x, double y, ShellType bulletType)

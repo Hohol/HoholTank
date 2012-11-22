@@ -76,7 +76,6 @@ abstract class ActualStrategy
 		AvoidBullets();
 		ManageStuck();
 		prevMove = new MoveType(move.LeftTrackPower, move.RightTrackPower);
-
 	}
 
 	bool TeammateNeedsMore(Bonus bonus, Tank teammate)
@@ -160,6 +159,10 @@ abstract class ActualStrategy
 			return true;
 		if (aim is Tank && ((Tank)aim).IsTeammate)
 			return true;
+#if TEDDY_BEARS
+		if(bulletType == ShellType.Regular)
+			return false;
+#endif
 		if(aim is Tank && CanEscape((Tank)aim,bulletType))
 			return true;
 		//if (aim is Tank && bulletType == ShellType.Premium && CanEscape((Tank)aim, bulletType))
@@ -374,7 +377,7 @@ abstract class ActualStrategy
 			bool can = true;
 			foreach (var p in bounds)
 			{
-				if (Menace(tank, bulletX, bulletY, bulletSpeedX, bulletSpeedY, bulletType, moveType,3,-1))
+				if (Menace(tank, bulletX, bulletY, bulletSpeedX, bulletSpeedY, bulletType, moveType,3,-2))
 				{
 					can = false;
 					break;
@@ -421,16 +424,12 @@ abstract class ActualStrategy
 			else
 				precision = regularPrecision;
 			double anglePrecision = Math.PI / 10;
-			if (!self.IsTeammate)
-			{
-				precision *= -1;
-				anglePrecision *= -1;
-			}
+
 			if (Inside(me, bulletX, bulletY, precision))
 			{
 				double collisionAngle = GetCollisionAngle(me, bulletX, bulletY, startX, startY);
 				if (bulletType == ShellType.Premium || double.IsNaN(collisionAngle)
-					|| collisionAngle < ricochetAngle + precision)
+					|| collisionAngle < ricochetAngle + anglePrecision)
 					return true;
 				else
 					return false;
@@ -493,7 +492,7 @@ abstract class ActualStrategy
 		curMoves = curMoves.OrderBy(
 			m => Math.Abs(m.LeftTrackPower - move.LeftTrackPower)
 			   + Math.Abs(m.RightTrackPower - move.RightTrackPower)).ToList();
-		double premiumPrecision = 4, regularPrecision = 0;
+		double premiumPrecision = 6, regularPrecision = 0;
 		foreach (var bullet in bullets)
 		{
 			if (Menace(self, bullet,new MoveType(move.LeftTrackPower,move.RightTrackPower),premiumPrecision,regularPrecision))
@@ -1139,8 +1138,37 @@ abstract class ActualStrategy
 			);
 	}
 
-	void MoveTo(double x, double y, bool forward)
+	protected void MoveTo(double x, double y, bool forward)
 	{
+		/*double precision = self.Height/2+100;
+		double rr;
+		if (ObstacleBetween(self, x, y, false, precision, out rr))
+		{
+			double angle = Math.Atan2(y - self.Y, x - self.X);			
+			for (double d = 0.1; d <= Math.PI / 2; d += 0.1)
+			{
+				double a = angle + d;
+				double tx = self.X + rr * Math.Cos(a);
+				double ty = self.Y + rr * Math.Sin(a);
+				if (!ObstacleBetween(self, tx, ty, false, precision))
+				{
+					x = tx;
+					y = ty;
+					break;
+				}
+
+				a = angle - d;
+				tx = self.X + rr * Math.Cos(a);
+				ty = self.Y + rr * Math.Sin(a);
+				if (!ObstacleBetween(self, tx, ty, false,0))
+				{
+					x = tx;
+					y = ty;
+					break;
+				}
+			}
+		}*/
+
 		targetX = x;
 		targetY = y;
 		double r = Math.Min(self.Width, self.Height) / 2;
@@ -1355,72 +1383,63 @@ abstract class ActualStrategy
 			double flyTime = (self.GetDistanceTo(tank) - self.VirtualGunLength) / regularBulletStartSpeed;
 			test += flyTime;
 
-			if (res == null || test < mi * 0.8 || test < mi * 1.2 && MoreSweet(tank, res))
+			if (res == null || test < mi * 0.7 || test < mi * 1.3 && MoreSweet(tank, res))
 			{
 				mi = test;
 				res = tank;
 			}
 		}
 		return res;
-	}
+	}	
 
-		static bool ObstacleBetween(Tank self, Unit unit, Unit[] ar)
+	static bool ObstacleBetween(Tank self, double x, double y, Unit[] ar, double precision, out double r)
 	{
+		r = double.NaN;
 		foreach (Unit obs in ar)
 		{
-			if (obs.Id == self.Id || obs.Id == unit.Id)
+			if (obs.Id == self.Id || obs.GetDistanceTo(x,y) < self.Height)
 				return false;
 			Point me = new Point(self);
 			Point o = new Point(obs);
-			Point U = new Point(unit);
+			Point U = new Point(x,y);
 			if (Point.Scalar(U.x - me.x, U.y - me.y, o.x - me.x, o.y - me.y) < 0)
 				return false;
 			if (Point.Scalar(me.x - U.x, me.y - U.y, o.x - U.x, o.y - U.y) < 0)
 				return false;
-			double d = self.GetDistanceTo(unit);
+			double d = self.GetDistanceTo(x,y);
 			double s = Point.wp(o, me, U);
 			double h = Math.Abs(s) / d;
-			if (h < obs.Width/2)
+			if (h < obs.Width / 2 + precision)
+			{
+				r = self.GetDistanceTo(obs) - obs.Width/2;
+				return true;
+			}
+		}		
+		return false;
+	}
+
+	static bool ObstacleBetween(Tank self, double x, double y, bool bonusIsObstacle, double precision, out double rr)
+	{
+		if (ObstacleBetween(self, x, y, world.Tanks, precision, out rr))
+			return true;
+		if (ObstacleBetween(self, x, y, world.Obstacles, precision, out rr))
+			return true;
+		if (bonusIsObstacle)
+		{
+			if (ObstacleBetween(self, x, y, world.Bonuses, precision, out rr))
 				return true;
 		}
 		return false;
 	}
+	static bool ObstacleBetween(Tank self, double x, double y, bool bonusIsObstacle, double precision)
+	{
+		double dummy;
+		return ObstacleBetween(self, x, y, bonusIsObstacle, precision, out dummy);
+	}
 
 	static protected bool ObstacleBetween(Tank self, Unit unit, bool bonusIsObstacle)
 	{
-		if (ObstacleBetween(self, unit, world.Tanks))
-			return true;
-		if (ObstacleBetween(self, unit, world.Obstacles))
-			return true;
-		if (bonusIsObstacle)
-		{
-			if (ObstacleBetween(self, unit, world.Bonuses))
-				return true;
-		}
-		return false;
-		/*const int stepCnt = 100;
-		double dx = (unit.X - self.X) / stepCnt;
-		double dy = (unit.Y - self.Y) / stepCnt;
-		double x = self.X;
-		double y = self.Y;
-		for (int i = 0; i <= stepCnt; i++)
-		{
-			Unit o = TestCollision(x, y, 0, 0, 0, null);
-			x += dx;
-			y += dy;
-
-			if (o == null)
-				continue;
-			if (o.Id == self.Id || o.Id == unit.Id)
-				continue;
-			if (o is Tank)
-				return true;
-			if (o is Obstacle)
-				return true;
-			if (o is Bonus && bonusIsObstacle)
-				return true;
-		}
-		return false;*/
+		return ObstacleBetween(self, unit.X, unit.Y, bonusIsObstacle,0);
 	}
 
 	static protected int AliveEnemyCnt()
@@ -1457,7 +1476,7 @@ abstract class ActualStrategy
 		double ang2 = Math.Atan2(bonus.Y - a.Y, bonus.X - a.X);
 		return angleDiff(ang1, ang2) <= Math.PI / 10;
 	}
-	static bool VeryBad(Bonus bonus)
+	virtual protected bool VeryBad(Tank self, Bonus bonus)
 	{
 		int r = 0;
 		foreach (Tank tank in world.Tanks)
@@ -1470,9 +1489,9 @@ abstract class ActualStrategy
 		return r >= 2;
 	}
 
-	static double Importance(Tank self, Bonus bonus, bool forward)
+	double Importance(Tank self, Bonus bonus, bool forward)
 	{
-		if (VeryBad(bonus))
+		if (VeryBad(self, bonus))
 			return -inf;
 		if (ObstacleBetween(self, bonus, false))
 			return -inf;
@@ -1529,7 +1548,7 @@ abstract class ActualStrategy
 		return r + (10000 - dist);
 	}
 
-	static protected Bonus GetBonus(Tank self, out bool forward, HashSet<long> forbidden)
+	protected Bonus GetBonus(Tank self, out bool forward, HashSet<long> forbidden)
 	{
 		double ma = 0;
 		Bonus res = null;
