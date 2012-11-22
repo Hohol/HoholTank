@@ -48,7 +48,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			/*if(world.Tick < ActualStrategy.startTick || world.Tick > ActualStrategy.endTick)
 				return;/**/
 #endif
-			strat.Move(self, world, move);
+			strat.CommonMove(self, world, move);
 		}
 	}
 }

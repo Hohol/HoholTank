@@ -8,20 +8,9 @@ class TwoTankskActualStrategy : ActualStrategy
 {
 	Tank teammate;
 	OneTankActualStrategy myOtherSelf = new OneTankActualStrategy();
-	List<Tank> enemies;
 
 	override public void Move(Tank self, World world, Move move)
-	{
-		this.self = self;
-		ActualStrategy.world = world;
-		this.move = move;
-
-		historyX[world.Tick] = self.X;
-		historyY[world.Tick] = self.Y;
-		enemies = new List<Tank>();
-		foreach (Tank tank in world.Tanks)
-			if (!IsDead(tank) && !tank.IsTeammate)
-				enemies.Add(tank);
+	{		
 		myOtherSelf.historyX[world.Tick] = self.X;
 		myOtherSelf.historyY[world.Tick] = self.Y;
 
@@ -31,7 +20,7 @@ class TwoTankskActualStrategy : ActualStrategy
 
 		if (IsDead(teammate))
 		{
-			myOtherSelf.Move(self, world, move);
+			myOtherSelf.CommonMove(self, world, move);
 			return;
 		}
 
@@ -78,7 +67,7 @@ class TwoTankskActualStrategy : ActualStrategy
 				StayPerpendicular(tank);
 		}*/
 
-		if (AliveEnemyCnt() == 1 && AliveTeammateCnt() > 1)
+		if (AliveEnemyCnt() == 1)
 		{
 			Tank enemy = PickEnemy();
 			double myDist = self.GetDistanceTo(enemy);

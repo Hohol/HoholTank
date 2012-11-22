@@ -42,12 +42,41 @@ abstract class ActualStrategy
 	protected Move move;
 
 	public static HashSet<string> smartAss;
+	protected List<Tank> teammates, enemies;
 
 #if TEDDY_BEARS
 	public static StreamWriter file;//, teorFile, realFile;
 #endif
 
+
 	public abstract void Move(Tank self, World world, Move move);
+
+	public void CommonMove(Tank self, World world, Move move)
+	{
+		this.self = self;
+		ActualStrategy.world = world;
+		this.move = move;
+		enemies = new List<Tank>();
+		foreach (Tank tank in world.Tanks)
+			if (!IsDead(tank) && !tank.IsTeammate)
+				enemies.Add(tank);
+
+		historyX[world.Tick] = self.X;
+		historyY[world.Tick] = self.Y;
+
+		teammates = new List<Tank>();
+		foreach (Tank tank in world.Tanks)
+			if (tank.IsTeammate && tank.Id != self.Id)
+				teammates.Add(tank);
+
+		/////////////////
+		Move(self, world, move);
+		/////////////////
+
+		ManageStuck();
+		AvoidBullets();
+		prevMove = new MoveType(move.LeftTrackPower, move.RightTrackPower);
+	}
 
 	static protected int TeamSize(Tank tank)
 	{
