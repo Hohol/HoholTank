@@ -155,18 +155,25 @@ abstract class ActualStrategy
 	{
 		if (aim == null)
 			return true;
-		if (!(aim is Tank) || IsDead((Tank)aim) || shootOnlyToVictim && victim != null && aim.Id != victim.Id)
+		if (!(aim is Tank))
 			return true;
-		if (aim is Tank && ((Tank)aim).IsTeammate)
+		Tank tank = (Tank)aim;
+		if(IsDead(tank)|| shootOnlyToVictim && victim != null && tank.Id != victim.Id)
 			return true;
-#if TEDDY_BEARS
-		if(bulletType == ShellType.Regular)
+		if (tank.IsTeammate)
+			return true;
+
+		if (bulletType == ShellType.Premium)
+			return CanEscape(tank, bulletType);
+
+		if (self.GetDistanceTo(aim) > world.Height)
+		{
 			return false;
-#endif
-		if(aim is Tank && CanEscape((Tank)aim,bulletType))
-			return true;
-		//if (aim is Tank && bulletType == ShellType.Premium && CanEscape((Tank)aim, bulletType))
-//			return true;
+		}
+		else
+		{
+			return CanEscape(tank, bulletType);
+		}
 		return false;
 	}
 
@@ -1075,8 +1082,8 @@ abstract class ActualStrategy
 		double sina = Math.Sin(angle);
 		double x = self.X + self.VirtualGunLength * cosa;
 		double y = self.Y + self.VirtualGunLength * sina;
-		double dx = bulletSpeed * cosa;// +self.SpeedX;
-		double dy = bulletSpeed * sina;// +self.SpeedY;
+		double dx = bulletSpeed * cosa;
+		double dy = bulletSpeed * sina;
 
 		double sumDist = 0;
 		double needDist = premium ? premiumShotDistance : diagonalLen;
@@ -1087,7 +1094,7 @@ abstract class ActualStrategy
 		{
 			foreach (var p in bounds)
 			{
-				Unit unit = TestCollision(p.x, p.y, tick, -1, 2, null);
+				Unit unit = TestCollision(p.x, p.y, tick, 0, 2, null);
 				if (unit != null)
 				{
 					resTick = tick;
