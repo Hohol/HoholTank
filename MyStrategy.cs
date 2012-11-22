@@ -20,9 +20,9 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 				realFile.AutoFlush = true;
 				teorFile = new StreamWriter("teor.txt");
 				teorFile.AutoFlush = true;*/
-			}
-			System.Threading.Thread.CurrentThread.CurrentCulture 
+				System.Threading.Thread.CurrentThread.CurrentCulture
 				= System.Globalization.CultureInfo.InvariantCulture;
+			}			
 #endif
 
 			const int n = 5;

@@ -761,12 +761,20 @@ abstract class ActualStrategy
 
 	static bool Inside(MutableUnit unit, double x, double y, double precision)
 	{
+		double w = unit.Width / 2 + precision;
+		double h = unit.Height / 2 + precision;
+
+		if (w < h)
+			throw new Exception();
+
+		if (x < unit.X - w || x > unit.X + w ||  // w must be greater than h
+		   y < unit.Y - w || y > unit.Y + w)
+			return false;
+
 		double d = unit.GetDistanceTo(x, y);
 		double angle = unit.GetAngleTo(x, y);
 		x = d * Math.Cos(angle);
 		y = d * Math.Sin(angle);
-		double w = unit.Width / 2 + precision;
-		double h = unit.Height / 2 + precision;
 		double lx = -w, rx = w;
 		double ly = -h, ry = h;
 		return x >= -w && x <= w &&
