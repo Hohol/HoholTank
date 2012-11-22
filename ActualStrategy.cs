@@ -48,7 +48,7 @@ abstract class ActualStrategy
 	public static StreamWriter file;//, teorFile, realFile;
 #endif
 
-
+	
 	public abstract void Move(Tank self, World world, Move move);
 
 	public void CommonMove(Tank self, World world, Move move)
@@ -77,6 +77,40 @@ abstract class ActualStrategy
 		AvoidBullets();
 		prevMove = new MoveType(move.LeftTrackPower, move.RightTrackPower);
 	}
+
+	bool TeammateNeedsMore(Bonus bonus, Tank teammate)
+	{
+		if (bonus.Type == BonusType.AmmoCrate)
+		{
+			if (self.PremiumShellCount != teammate.PremiumShellCount)
+				return self.PremiumShellCount > teammate.PremiumShellCount;
+		}
+		else if (bonus.Type == BonusType.Medikit)
+		{
+			if (self.CrewHealth != teammate.CrewHealth)
+				return self.CrewHealth > teammate.CrewHealth;
+		}
+		else
+		{
+			if (self.HullDurability != teammate.HullDurability)
+				return self.HullDurability > teammate.HullDurability;
+		}
+		return self.TeammateIndex == 1;
+	}
+
+	protected Bonus GetBonus(out bool forward)
+	{
+		var forbidden = new HashSet<long>();
+		foreach (Tank tm in teammates)
+		{
+			bool dummy;
+			Bonus b = GetBonus(tm, out dummy, null);
+			if (b != null && TeammateNeedsMore(b, tm))
+				forbidden.Add(b.Id);
+		}
+		return GetBonus(self, out forward, forbidden);
+	}
+
 
 	static protected int TeamSize(Tank tank)
 	{
@@ -1392,7 +1426,7 @@ abstract class ActualStrategy
 		double ang2 = Math.Atan2(bonus.Y - a.Y, bonus.X - a.X);
 		return angleDiff(ang1, ang2) <= Math.PI / 10;
 	}
-	static bool VeryBad(Bonus bonus)
+	protected virtual bool VeryBad(Tank self, Bonus bonus)
 	{
 		int r = 0;
 		foreach (Tank tank in world.Tanks)
@@ -1405,9 +1439,9 @@ abstract class ActualStrategy
 		return r >= 2;
 	}
 
-	static double Importance(Tank self, Bonus bonus, bool forward)
+	double Importance(Tank self, Bonus bonus, bool forward)
 	{
-		if (VeryBad(bonus))
+		if (VeryBad(self, bonus))
 			return -inf;
 		if (ObstacleBetween(self, bonus, false))
 			return -inf;
@@ -1464,14 +1498,14 @@ abstract class ActualStrategy
 		return r + (10000 - dist);
 	}
 
-	static protected Bonus GetBonus(Tank self, out bool forward, Bonus forbidden = null)
+	protected Bonus GetBonus(Tank self, out bool forward, HashSet<long> forbidden)
 	{
 		double ma = 0;
 		Bonus res = null;
 		forward = true;
 		foreach (var bonus in world.Bonuses)
 		{
-			if (bonus == forbidden)
+			if (forbidden != null && forbidden.Contains(bonus.Id))
 				continue;
 			double test = Importance(self, bonus, true);
 			if (test > ma)

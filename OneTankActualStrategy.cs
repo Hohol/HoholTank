@@ -9,7 +9,7 @@ class OneTankActualStrategy : ActualStrategy
 	override public void Move(Tank self, World world, Move move)
 	{
 		bool forward;
-		Bonus bonus = GetBonus(self, out forward);
+		Bonus bonus = GetBonus(out forward);
 		
 		Tank victim = null;
 

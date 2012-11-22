@@ -10,13 +10,11 @@ class TwoTankskActualStrategy : ActualStrategy
 	OneTankActualStrategy myOtherSelf = new OneTankActualStrategy();
 
 	override public void Move(Tank self, World world, Move move)
-	{		
+	{
 		myOtherSelf.historyX[world.Tick] = self.X;
 		myOtherSelf.historyY[world.Tick] = self.Y;
 
-		foreach (var tank in world.Tanks)
-			if (tank.Id != self.Id && tank.IsTeammate)
-				teammate = tank;
+		teammate = teammates[0];
 
 		if (IsDead(teammate))
 		{
@@ -24,14 +22,8 @@ class TwoTankskActualStrategy : ActualStrategy
 			return;
 		}
 
-		bool forward, tmForward;
-		Bonus bonus = GetBonus(self, out forward);
-		Bonus tmBonus = GetBonus(teammate, out tmForward);
-		if (bonus != null)
-		{
-			if (tmBonus != null && bonus.Id == tmBonus.Id && TeammateNeedsMore(bonus))
-				bonus = GetBonus(self, out forward, tmBonus);
-		}
+		bool forward;
+		Bonus bonus = GetBonus(out forward);
 
 #if TEDDY_BEARS
 		//bonus = null;
@@ -45,12 +37,7 @@ class TwoTankskActualStrategy : ActualStrategy
 		else
 		{
 			MoveBackwards();
-			//if (tmBonus == null || world.Tick <= runToCornerTime)
-
-			//else
-				//MoveNearTo(teammate,self.Width*2);
 		}
-
 
 		Tank victim = GetVictim();//GetWithSmallestDistSum();
 		if (victim != null)
@@ -72,7 +59,7 @@ class TwoTankskActualStrategy : ActualStrategy
 			Tank enemy = PickEnemy();
 			double myDist = self.GetDistanceTo(enemy);
 			double tmDist = teammate.GetDistanceTo(enemy);
-			if(self.GetDistanceTo(enemy) > 4*self.Width && !(myDist < tmDist-self.Width/2))
+			if (self.GetDistanceTo(enemy) > 4 * self.Width && !(myDist < tmDist - self.Width / 2))
 				MoveTo(enemy, true);
 		}
 
@@ -80,18 +67,7 @@ class TwoTankskActualStrategy : ActualStrategy
 
 		if (world.Tick > runToCornerTime && victim != null && !HaveTimeToTurn(victim) && !bonusSaves)
 			TurnToMovingTank(victim, true);
-
-		//MoveToDead();
-
-		ManageStuck();
-
-		AvoidBullets();
-		prevMove = new MoveType(move.LeftTrackPower, move.RightTrackPower);
-		/*if (world.Tick >= startTick && self.Y > world.Height / 2)
-		{
-			file.WriteLine("real " + world.Tick + " " + self.X + " " + self.Y + " " + self.Angle);
-		}*/
-	}
+	}	
 
 	private bool TeammateNeedsMore(Bonus bonus)
 	{
