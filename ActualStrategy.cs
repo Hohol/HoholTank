@@ -530,6 +530,30 @@ abstract class ActualStrategy
 		return res;
 	}
 
+	static DangerType DangerFactor2(Tank self, List<Shell> bullets, MoveType moveType, bool shouldTestCollision)
+	{
+		DangerType res = new DangerType();		
+		foreach (var bullet in bullets)
+		{
+			Point[] bounds = GetBounds(bullet);
+			double ma = 0;
+			foreach (var p in bounds)
+			{
+				double test = DangerFactor(self, p.x, p.y, bullet.SpeedX, bullet.SpeedY, bullet.Type, moveType, shouldTestCollision);
+				ma = Math.Max(ma, test);
+			}
+			if (ma == inf)
+			{
+				if (bullet.Type == ShellType.Premium)
+					res.cnt += 2;
+				else
+					res.cnt++;
+			}
+			res.dangerFactor += ma;
+		}
+		return res;
+	}
+
 	public class BulletComparer : IComparer<Shell>
 	{
 		Tank tank;
@@ -552,14 +576,38 @@ abstract class ActualStrategy
 		}
 	}
 
-#if TEDDY_BEARS
-	//public const int startTick = 1867, endTick = 1868;
-#endif
+
+	class DangerType
+	{
+		public int cnt;
+		public double dangerFactor;
+		public static bool operator <(DangerType a, DangerType b)
+		{
+			if (a.cnt != b.cnt)
+				return a.cnt < b.cnt;
+			return a.dangerFactor < b.dangerFactor;
+		}
+		public static bool operator >(DangerType a, DangerType b)
+		{
+			if (a.cnt != b.cnt)
+				return a.cnt > b.cnt;
+			return a.dangerFactor > b.dangerFactor;
+		}
+	}
+
+	bool MayBeDanger(Shell bullet)
+	{
+		return self.GetDistanceTo(bullet) < 2 * self.Width ||
+			bullet.SpeedX * (self.X - bullet.X) + bullet.SpeedY * (self.Y - bullet.Y) > 0;
+	}
 
 	protected void AvoidBullets()
 	{
-		List<Shell> bullets = new List<Shell>(world.Shells);
-		bullets.Sort(new BulletComparer(self));
+		List<Shell> bullets = new List<Shell>();
+		foreach (var bullet in world.Shells)
+			if (MayBeDanger(bullet))
+				bullets.Add(bullet);
+		//bullets.Sort(new BulletComparer(self));
 		var curMoves = new List<MoveType>(moveTypes);
 		if(prevMove != null)
 			curMoves.Add(prevMove);
@@ -568,31 +616,22 @@ abstract class ActualStrategy
 			m => Math.Abs(m.LeftTrackPower - move.LeftTrackPower)
 			   + Math.Abs(m.RightTrackPower - move.RightTrackPower)).ToList();
 		var bestMove = new MoveType(move.LeftTrackPower,move.RightTrackPower);
-		Shell dangerBullet = null;
-		double danger = 0;
-		foreach (var bullet in bullets)
-		{
-			danger = DangerFactor(self, bullet,bestMove, true);
-			if(danger > 0)
-			{
-				dangerBullet = bullet;
-				break;
-			}
-		}
-		if(dangerBullet != null)
+		//Shell dangerBullet = null;
+		DangerType danger = DangerFactor2(self, bullets,bestMove, true);
+		if(danger.dangerFactor > 0)
 		{
 			foreach(var curMove in curMoves)
 			{
-				double test = DangerFactor(self, dangerBullet, curMove,false);
+				DangerType test = DangerFactor2(self, bullets, curMove,false);
 				if(test < danger)
 				{
 					danger = test;
 					bestMove = curMove;
 				}
-				if (danger == 0)
+				if (danger.dangerFactor == 0)
 					break;
 			}
-			if (danger == inf)
+			/*if (danger.cnt > 0)
 			{
 				if (self.RemainingReloadingTime == 0)
 				{
@@ -601,7 +640,7 @@ abstract class ActualStrategy
 						move.FireType = FireType.Regular;
 					}
 				}
-			}
+			}*/
 		}
 		move.LeftTrackPower = bestMove.LeftTrackPower;
 		move.RightTrackPower = bestMove.RightTrackPower;
