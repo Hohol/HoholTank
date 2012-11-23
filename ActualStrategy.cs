@@ -480,7 +480,7 @@ abstract class ActualStrategy
 			}
 			if (shouldTestCollision && TestCollision(bulletX, bulletY, tick, -10, -7, self) != null)
 				return 0;
-			foreach (var p in me.bounds)
+			foreach (var p in me.GetBounds())
 			{
 				minDist = Math.Min(minDist,Point.dist(p.x,p.y,bulletX,bulletY));
 			}
@@ -747,7 +747,7 @@ abstract class ActualStrategy
 
 		Point bullet = new Point(bulletX, bulletY);
 
-		Point[] ar = GetBounds(tank);
+		Point[] ar = tank.GetBounds();
 
 		Point a = ar[0], b = ar[1], c = ar[2], d = ar[3];
 
@@ -880,8 +880,8 @@ abstract class ActualStrategy
 
 	bool Collide(MutableUnit a, MutableUnit b, double precision)
 	{
-		Point[] aBounds = GetBounds(a);
-		Point[] bBounds = GetBounds(b);
+		Point[] aBounds = a.GetBounds();
+		Point[] bBounds = b.GetBounds();
 		foreach (var p in aBounds)
 			if (Inside(b, p.x, p.y, precision))
 				return true;

@@ -80,13 +80,13 @@ class MutableUnit
 {
 	public double Angle, Y, X, Width, Height, SpeedX, SpeedY, AngularSpeed;
 	public MutableUnit() { }
-	/*Point[] bounds;
+	protected Point[] bounds;
 	public Point[] GetBounds()
 	{
 		if (bounds == null)
 			bounds = ActualStrategy.GetBounds(this);
 		return bounds;
-	}*/
+	}
 	public MutableUnit(Unit unit)
 	{
 		SpeedX = unit.SpeedX;
@@ -119,7 +119,7 @@ class MutableUnit
 class MutableBullet : MutableUnit
 {
 	ShellType Type;
-	double friction;
+	double friction;	
 	public MutableBullet(Shell bullet)
 		: base(bullet)
 	{
@@ -158,14 +158,20 @@ class MutableBullet : MutableUnit
 		SpeedY *= friction;
 		X += SpeedX;
 		Y += SpeedY;
+		if(bounds != null)
+			foreach (var p in bounds)
+			{
+				p.x += SpeedX;
+				p.y += SpeedY;
+			}
 	}
 }
 
 class MutableTank : MutableUnit
-{	
+{
+	TankPhisicsConsts phisics = TankPhisicsConsts.getPhisicsConsts();
 	public double engine_rear_power_factor;
-	public int crew_health;
-	public Point[] bounds;
+	public int crew_health;	
 	public MutableTank(Tank tank) : base(tank)
 	{		
 		engine_rear_power_factor = tank.EngineRearPowerFactor;
@@ -173,9 +179,7 @@ class MutableTank : MutableUnit
 		bounds = ActualStrategy.GetBounds(tank);
 	}
 	public void Move(MoveType moveType, World world)
-	{  
-	  TankPhisicsConsts phisics = TankPhisicsConsts.getPhisicsConsts();
-
+	{ 
 	  SpeedX *= phisics.resistMove;
 	  SpeedY *= phisics.resistMove;
 	  AngularSpeed *= phisics.resistRotate;
@@ -196,11 +200,11 @@ class MutableTank : MutableUnit
 	  AngularSpeed += accRotate;
 	  Angle += AngularSpeed;
 
-	  for (int i = 0; i < 4; i++)
-	  {
-		  bounds[i].x += SpeedX;
-		  bounds[i].y += SpeedY;
-	  }
+		foreach (var p in bounds)
+		{
+			p.x += SpeedX;
+			p.y += SpeedY;
+		}
 
 	  for (int i = 0; i < 4; i++)
 	  {
