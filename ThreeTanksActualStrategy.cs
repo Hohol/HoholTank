@@ -87,15 +87,19 @@ class ThreeTanksActualStrategy : ActualStrategy
 		if (bonus.Type == BonusType.Medikit && self.CrewHealth > self.CrewMaxHealth - medikitVal ||
 		   bonus.Type == BonusType.RepairKit && self.HullDurability > self.HullMaxDurability - repairVal ||
 		   bonus.Type == BonusType.AmmoCrate && self.PremiumShellCount >= 4)
-			return true; ;
+			return true;
 		double x = (self.X + teammates[0].X + teammates[1].X) / 3;
-		if (x > world.Width / 2)
+		double cx = world.Width / 2;
+		double cy = world.Height / 2;
+		if (x > cx)
 		{
-			return bonus.X < world.Width / 2;
+			//return bonus.X < world.Width / 2;
+			return bonus.X + bonus.Y < cx + cy || bonus.X - bonus.Y < cx - cy;
 		}
 		else
 		{
-			return bonus.X > world.Width / 2;
+			//return bonus.X > world.Width / 2;
+			return bonus.X + bonus.Y > cx + cy || bonus.X - bonus.Y > cx - cy;
 		}
 	}
 }
