@@ -95,7 +95,7 @@ abstract class ActualStrategy
 			if (self.HullDurability != teammate.HullDurability)
 				return self.HullDurability > teammate.HullDurability;
 		}
-		return self.TeammateIndex == 1;
+		return teammate.GetDistanceTo(bonus) < self.GetDistanceTo(bonus);
 	}
 
 	protected Bonus GetBonus(out bool forward)
