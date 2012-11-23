@@ -14,13 +14,12 @@ class TwoTankskActualStrategy : ActualStrategy
 		myOtherSelf.historyX[world.Tick] = self.X;
 		myOtherSelf.historyY[world.Tick] = self.Y;
 
-		teammate = teammates[0];
-
-		if (IsDead(teammate))
+		if (teammates.Count != 1)
 		{
 			myOtherSelf.CommonMove(self, world, move);
 			return;
 		}
+		teammate = teammates[0];
 
 		bool forward;
 		Bonus bonus = GetBonus(out forward);
@@ -101,16 +100,16 @@ class TwoTankskActualStrategy : ActualStrategy
 		if (LeftMost())
 		{
 			if (self.Y < teammate.Y)
-				MoveTo(firstX, vertD, 0, 1);
+				MoveToVert(firstX, vertD);
 			else
-				MoveTo(firstX, world.Height -vertD, 0, -1);
+				MoveToVert(firstX, world.Height -vertD);
 		}
 		else if (RightMost())
 		{
 			if (self.Y < teammate.Y)
-				MoveTo(world.Width - firstX, vertD, 0, 1);
+				MoveToVert(world.Width - firstX, vertD);
 			else
-				MoveTo(world.Width - firstX, world.Height - vertD, 0, -1);
+				MoveToVert(world.Width - firstX, world.Height - vertD);
 		}
 		else
 		{
@@ -119,30 +118,30 @@ class TwoTankskActualStrategy : ActualStrategy
 			if (x < world.Width / 2 && y < world.Height / 2)
 			{
 				if (self.X < teammate.X)
-					MoveTo(firstX, firstY, 0, 1);
+					MoveToVert(firstX, firstY);
 				else
-					MoveTo(secondX, secondY, 0, 1);
+					MoveToVert(secondX, secondY);
 			}
 			else if (x < world.Width / 2 && y > world.Height / 2)
 			{
 				if (self.X < teammate.X)
-					MoveTo(firstX, world.Height-firstY, 0, -1);
+					MoveToVert(firstX, world.Height-firstY);
 				else
-					MoveTo(secondX, world.Height-secondY, 0, -1);
+					MoveToVert(secondX, world.Height-secondY);
 			}
 			else if (x > world.Width / 2 && y < world.Height / 2)
 			{
 				if (self.X > teammate.X)
-					MoveTo(world.Width - firstX, firstY, 0, 1);
+					MoveToVert(world.Width - firstX, firstY);
 				else
-					MoveTo(world.Width - secondX, secondY, 0, 1);
+					MoveToVert(world.Width - secondX, secondY);
 			}
 			else
 			{
 				if (self.X > teammate.X)
-					MoveTo(world.Width - firstX, world.Height-firstY, 0, -1);
+					MoveToVert(world.Width - firstX, world.Height-firstY);
 				else
-					MoveTo(world.Width - secondX, world.Height-secondY, 0, -1);
+					MoveToVert(world.Width - secondX, world.Height-secondY);
 			}
 		}
 	}

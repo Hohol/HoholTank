@@ -21,6 +21,7 @@ abstract class ActualStrategy
 	public const double bulletWidth = 22.5;
 	public const double bulletHeight = 7.5;
 	const int dangerFactorTestTickCnt = 100;
+	const double targetDist = 30;
 
 	const int stuckDetectTickCnt = 100;
 	bool stuckEscapeForward;
@@ -67,7 +68,7 @@ abstract class ActualStrategy
 
 		teammates = new List<Tank>();
 		foreach (Tank tank in world.Tanks)
-			if (tank.IsTeammate && tank.Id != self.Id)
+			if (tank.IsTeammate && tank.Id != self.Id && !IsDead(tank))
 				teammates.Add(tank);
 
 		/////////////////
@@ -178,6 +179,36 @@ abstract class ActualStrategy
 		}
 		//return false;
 	}
+	protected void MoveToVert(double x, double y)
+	{
+		targetX = x;
+		targetY = y;
+
+		double tox = 10 * Math.Cos(self.Angle);
+		double toy = 10 * Math.Sin(self.Angle);
+
+		double a = Math.Atan2(self.Y-y,self.X-x);
+
+		if (self.GetDistanceTo(x, y) <= targetDist)
+		{
+			if (toy > 0)
+				TurnTo(self.X, self.Y+1);
+			else
+				TurnTo(self.X, self.Y+1);
+		}
+		else if (self.GetDistanceTo(x, y) <= 2 * targetDist && (angleDiff(a, 0) < Math.PI / 4 || angleDiff(a, Math.PI) < Math.PI / 4))
+		{
+			if (toy > 0)
+				MoveTo(x, y + self.Width, true);
+			else
+				MoveTo(x, y + self.Width, false);
+		}
+		else
+		{
+			bool forward = (tox * (x - self.X) + toy * (y - self.Y) > 0);
+			MoveTo(x, y, forward);
+		}
+	}
 	protected void MoveTo(double x, double y, double dx, double dy)
 	{
 		targetX = x;
@@ -198,12 +229,7 @@ abstract class ActualStrategy
 			bool forward = (tox * (x - self.X) + toy * (y - self.Y) > 0);
 			MoveTo(x, y, forward);
 		}
-
-		/*if (tox * dx + toy * dy >= 0)
-			MoveTo(x, y, dx, dy);
-		else
-			MoveTo(x, y, -dx, -dy);*/
-	}
+	}/**/
 
 	/*protected void MoveTo(double x, double y, double dx, double dy)
 	{
@@ -1225,8 +1251,7 @@ abstract class ActualStrategy
 	{
 		targetX = x;
 		targetY = y;
-		double r = Math.Min(self.Width, self.Height) / 2;
-		if (self.GetDistanceTo(x, y) < r)
+		if (self.GetDistanceTo(x, y) <= targetDist)
 		{
 			TurnTo(world.Width/2,world.Height/2);
 			return;

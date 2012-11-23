@@ -12,7 +12,7 @@ class ThreeTanksActualStrategy : ActualStrategy
 		myOtherSelf.historyX[world.Tick] = self.X;
 		myOtherSelf.historyY[world.Tick] = self.Y;
 
-		if (IsDead(teammates[0]) || IsDead(teammates[1]))
+		if(teammates.Count != 2)
 		{
 			myOtherSelf.CommonMove(self, world, move);
 			return;
@@ -65,20 +65,20 @@ class ThreeTanksActualStrategy : ActualStrategy
 		if (x < world.Width / 2)
 		{
 			if (up)
-				MoveTo(a, world.Height / 5, 0, 1);
+				MoveToVert(a, world.Height / 5);
 			else if (down)
-				MoveTo(a, world.Height / 5 * 4, 0, 1);
+				MoveToVert(a, world.Height / 5 * 4);
 			else
-				MoveTo(a, world.Height / 2, 0, 1);
+				MoveToVert(a, world.Height / 2);
 		}
 		else
 		{
 			if (up)
-				MoveTo(world.Width-a, world.Height / 5, 0, 1);
+				MoveToVert(world.Width-a, world.Height / 5);
 			else if (down)
-				MoveTo(world.Width - a, world.Height / 5 * 4, 0, 1);
+				MoveToVert(world.Width - a, world.Height / 5 * 4);
 			else
-				MoveTo(world.Width - a, world.Height / 2, 0, 1);
+				MoveToVert(world.Width - a, world.Height / 2);
 		}
 	}
 	
@@ -91,6 +91,21 @@ class ThreeTanksActualStrategy : ActualStrategy
 		double x = (self.X + teammates[0].X + teammates[1].X) / 3;
 		double cx = world.Width / 2;
 		double cy = world.Height / 2;
+		if (bonus.Type == BonusType.AmmoCrate)
+		{
+			double mi = inf, ma = 0;
+			foreach (var tank in world.Tanks)
+			{
+				if (tank.IsTeammate || IsDead(tank))
+					continue;
+				mi = Math.Min(mi, tank.X);
+				ma = Math.Max(ma, tank.X);
+			}
+			if (x > cx && ma < world.Width / 2)
+				return true;
+			if (x < cy && mi > world.Width / 2)
+				return true;
+		}
 		if (x > cx)
 		{
 			//return bonus.X < world.Width / 2;
