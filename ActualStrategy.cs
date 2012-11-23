@@ -405,6 +405,8 @@ abstract class ActualStrategy
 			ar = new List<MoveType>();
 			ar.Add(new MoveType(1, 1));
 			ar.Add(new MoveType(-1, -1));
+			ar.Add(new MoveType(-1, 1));
+			ar.Add(new MoveType(1, -1));
 		}
 
 		foreach (var moveType in ar)

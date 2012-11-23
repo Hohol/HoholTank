@@ -65,20 +65,20 @@ class ThreeTanksActualStrategy : ActualStrategy
 		if (x < world.Width / 2)
 		{
 			if (up)
-				MoveTo(a, world.Height / 4, 0, 1);
+				MoveTo(a, world.Height / 5, 0, 1);
 			else if (down)
-				MoveTo(a, world.Height / 4 * 3, 0, 1);
+				MoveTo(a, world.Height / 5 * 4, 0, 1);
 			else
-				MoveTo(a, world.Height / 4 * 2, 0, 1);
+				MoveTo(a, world.Height / 2, 0, 1);
 		}
 		else
 		{
 			if (up)
-				MoveTo(world.Width-a, world.Height / 4, 0, 1);
+				MoveTo(world.Width-a, world.Height / 5, 0, 1);
 			else if (down)
-				MoveTo(world.Width - a, world.Height / 4 * 3, 0, 1);
+				MoveTo(world.Width - a, world.Height / 5 * 4, 0, 1);
 			else
-				MoveTo(world.Width - a, world.Height / 4 * 2, 0, 1);
+				MoveTo(world.Width - a, world.Height / 2, 0, 1);
 		}
 	}
 	
