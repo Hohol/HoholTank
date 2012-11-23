@@ -446,32 +446,20 @@ abstract class ActualStrategy
 			bulletX += bulletSpeedX;
 			bulletY += bulletSpeedY;
 
-			/*if(moveType.LeftTrackPower >= 0.15 && moveType.LeftTrackPower <= 0.25 && moveType.RightTrackPower == 1)
-				file.WriteLine(world.Tick + " " + me.X + " " + me.Y + " " + me.Angle);*/
-
 			me.Move(moveType, world);			
 
-			/*double dummy;
-			if(Inside(self,bulletX,bulletY,12))
-			{
-				dummy = 33;
-			}*/
-			double precision;
-			if (bulletType == ShellType.Premium)
-				precision = 4;
-			else
-				precision = 0;
-			double anglePrecision = Math.PI / 10;
+			double precision = 0;
 			if (!self.IsTeammate)
-			{
-				precision *= -1;
+				precision = -1;
+			double anglePrecision = Math.PI/20;
+			if (!self.IsTeammate)
 				anglePrecision *= -1;
-			}
+
 			if (Inside(me, bulletX, bulletY, precision))
 			{
 				double collisionAngle = GetCollisionAngle(me, bulletX, bulletY, startX, startY);
 				if (bulletType == ShellType.Premium || double.IsNaN(collisionAngle)
-					|| collisionAngle < ricochetAngle + precision)
+					|| collisionAngle < ricochetAngle + anglePrecision)
 					return inf;
 				else
 					return inf/2;
