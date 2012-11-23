@@ -177,8 +177,34 @@ abstract class ActualStrategy
 		}
 		//return false;
 	}
-
 	protected void MoveTo(double x, double y, double dx, double dy)
+	{
+		targetX = x;
+		targetY = y;
+
+		double tox = 10 * Math.Cos(self.Angle);
+		double toy = 10 * Math.Sin(self.Angle);
+
+		if (self.GetDistanceTo(x, y) <= self.Height / 2)
+		{
+			if (tox * dx + toy * dy > 0)
+				TurnTo(self.X + dx, self.Y + dy);
+			else
+				TurnTo(self.X - dx, self.Y - dy);
+		}
+		else
+		{
+			bool forward = (tox * (x - self.X) + toy * (y - self.Y) > 0);
+			MoveTo(x, y, forward);
+		}
+
+		/*if (tox * dx + toy * dy >= 0)
+			MoveTo(x, y, dx, dy);
+		else
+			MoveTo(x, y, -dx, -dy);*/
+	}
+
+	/*protected void MoveTo(double x, double y, double dx, double dy)
 	{
 		targetX = x;
 		targetY = y;
@@ -191,14 +217,14 @@ abstract class ActualStrategy
 			Point d = new Point(dx, dy);
 			Point oMe = o - me;
 
-			if (Point.scalar(oMe, d) > 0/* && self.GetDistanceTo(x,y) > self.Width*/)
+			if (Point.scalar(oMe, d) > 0)
 			{
 				MoveTo(x, y, true);
 			}
 			else
 				MoveTo(x, y, false);
 		}
-	}
+	}*/
 
 	protected int AliveTeammateCnt()
 	{
