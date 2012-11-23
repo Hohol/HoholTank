@@ -166,6 +166,9 @@ abstract class ActualStrategy
 		if (tank.IsTeammate)
 			return true;
 
+		if (self.GetDistanceTo(aim) < self.Width * 3 && bulletType == ShellType.Regular && self.PremiumShellCount > 0)
+			return true;
+
 		if (bulletType == ShellType.Premium)
 			return CanEscape(tank, bulletType);
 
