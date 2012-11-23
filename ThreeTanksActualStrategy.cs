@@ -42,14 +42,14 @@ class ThreeTanksActualStrategy : ActualStrategy
 
 		TryShoot(victim, shootOnlyToVictim);
 
-		if (AliveEnemyCnt() == 1)
+		/*if (AliveEnemyCnt() == 1)
 		{
 			Tank enemy = PickEnemy();
 			double myDist = self.GetDistanceTo(enemy);
 			double tmDist = teammates[0].GetDistanceTo(enemy);
 			if(self.GetDistanceTo(enemy) > 4*self.Width && !(myDist < tmDist-self.Width/2))
 				MoveTo(enemy, true);
-		}
+		}*/
 
 		bool bonusSaves = BonusSaves(self, bonus);
 
