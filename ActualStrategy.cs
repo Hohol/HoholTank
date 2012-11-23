@@ -530,9 +530,11 @@ abstract class ActualStrategy
 		return res;
 	}
 
-	static DangerType DangerFactor2(Tank self, List<Shell> bullets, MoveType moveType, bool shouldTestCollision)
+	static DangerType DangerFactor2(Tank self, List<Shell> bullets, MoveType moveType, bool shouldTestCollision,
+		out List<Shell> dangerBullets)
 	{
-		DangerType res = new DangerType();		
+		dangerBullets = new List<Shell>();
+		DangerType res = new DangerType();
 		foreach (var bullet in bullets)
 		{
 			Point[] bounds = GetBounds(bullet);
@@ -548,6 +550,7 @@ abstract class ActualStrategy
 					res.cnt += 2;
 				else
 					res.cnt++;
+				dangerBullets.Add(bullet);
 			}
 			res.dangerFactor += ma;
 		}
@@ -617,12 +620,13 @@ abstract class ActualStrategy
 			   + Math.Abs(m.RightTrackPower - move.RightTrackPower)).ToList();
 		var bestMove = new MoveType(move.LeftTrackPower,move.RightTrackPower);
 		//Shell dangerBullet = null;
-		DangerType danger = DangerFactor2(self, bullets,bestMove, true);
+		List<Shell> dangerBullets;
+		DangerType danger = DangerFactor2(self, bullets, bestMove, true, out dangerBullets);
 		if(danger.dangerFactor > 0)
 		{
 			foreach(var curMove in curMoves)
 			{
-				DangerType test = DangerFactor2(self, bullets, curMove,false);
+				DangerType test = DangerFactor2(self, bullets, curMove, false, out dangerBullets);
 				if(test < danger)
 				{
 					danger = test;
@@ -631,16 +635,18 @@ abstract class ActualStrategy
 				if (danger.dangerFactor == 0)
 					break;
 			}
-			/*if (danger.cnt > 0)
+			if (danger.cnt > 0 && self.RemainingReloadingTime == 0)
 			{
-				if (self.RemainingReloadingTime == 0)
+				DangerFactor2(self, bullets, bestMove, false, out dangerBullets);
+				foreach(var bullet in dangerBullets)
 				{
-					if (ShootSaves(dangerBullet))
+					if (ShootSaves(bullet))
 					{
 						move.FireType = FireType.Regular;
+						break;
 					}
 				}
-			}*/
+			}
 		}
 		move.LeftTrackPower = bestMove.LeftTrackPower;
 		move.RightTrackPower = bestMove.RightTrackPower;
