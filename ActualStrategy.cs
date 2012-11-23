@@ -20,6 +20,7 @@ abstract class ActualStrategy
 	protected const double stayPerpendicularDistance = 800 * 3/4;
 	public const double bulletWidth = 22.5;
 	public const double bulletHeight = 7.5;
+	const int dangerFactorTestTickCnt = 100;
 
 	const int stuckDetectTickCnt = 100;
 	bool stuckEscapeForward;
@@ -411,7 +412,7 @@ abstract class ActualStrategy
 			bool can = true;
 			foreach (var p in bounds)
 			{
-				if (DangerFactor(tank, bulletX, bulletY, bulletSpeedX, bulletSpeedY, bulletType, moveType) == inf)
+				if (DangerFactor(tank, bulletX, bulletY, bulletSpeedX, bulletSpeedY, bulletType, moveType,true) == inf)
 				{
 					can = false;
 					break;
@@ -423,7 +424,8 @@ abstract class ActualStrategy
 		return false;
 	}
 
-	static double DangerFactor(Tank self, double bulletX, double bulletY, double bulletSpeedX, double bulletSpeedY, ShellType bulletType, MoveType moveType)
+	static double DangerFactor(Tank self, double bulletX, double bulletY, double bulletSpeedX, double bulletSpeedY, 
+		ShellType bulletType, MoveType moveType, bool shouldTestCollision)
 	{
 		double friction;
 		if (bulletType == ShellType.Regular)
@@ -435,7 +437,7 @@ abstract class ActualStrategy
 		Point[] bounds = GetBounds(self);
 
 		double minDist = inf;
-		for (int tick = 0; tick < 100; tick++)
+		for (int tick = 0; tick < dangerFactorTestTickCnt; tick++)
 		{
 			bulletSpeedX *= friction;
 			bulletSpeedY *= friction;
@@ -476,7 +478,7 @@ abstract class ActualStrategy
 					return false;
 #endif*/
 			}
-			if (TestCollision(bulletX, bulletY, tick, -10, -7, self) != null)
+			if (shouldTestCollision && TestCollision(bulletX, bulletY, tick, -10, -7, self) != null)
 				return 0;
 			foreach (var p in me.bounds)
 			{
@@ -486,24 +488,24 @@ abstract class ActualStrategy
 		return Math.Max(0, 20 - minDist);
 	}
 
-	static bool Menace(Tank self, Shell bullet, MoveType moveType)
+	/*static bool Menace(Tank self, Shell bullet, MoveType moveType, bool shouldTestCollision)
 	{
 		Point[] bounds = GetBounds(bullet);
 		foreach (var p in bounds)
 		{
-			if (DangerFactor(self, p.x, p.y, bullet.SpeedX, bullet.SpeedY, bullet.Type, moveType) == inf)
+			if (DangerFactor(self, p.x, p.y, bullet.SpeedX, bullet.SpeedY, bullet.Type, moveType, shouldTestCollision) == inf)
 				return true;
 		}
 		return false;
-	}
+	}*/
 
-	static double DangerFactor(Tank self, Shell bullet, MoveType moveType)
+	static double DangerFactor(Tank self, Shell bullet, MoveType moveType, bool shouldTestCollision)
 	{
 		double res = 0;
 		Point[] bounds = GetBounds(bullet);
 		foreach (var p in bounds)
 		{
-			double test = DangerFactor(self, p.x, p.y, bullet.SpeedX, bullet.SpeedY, bullet.Type, moveType);
+			double test = DangerFactor(self, p.x, p.y, bullet.SpeedX, bullet.SpeedY, bullet.Type, moveType, shouldTestCollision);
 			res = Math.Max(res, test);
 		}
 		return res;
@@ -551,7 +553,7 @@ abstract class ActualStrategy
 		double danger = 0;
 		foreach (var bullet in bullets)
 		{
-			danger = DangerFactor(self, bullet,bestMove);
+			danger = DangerFactor(self, bullet,bestMove, true);
 			if(danger > 0)
 			{
 				dangerBullet = bullet;
@@ -562,7 +564,7 @@ abstract class ActualStrategy
 		{
 			foreach(var curMove in curMoves)
 			{
-				double test = DangerFactor(self, dangerBullet, curMove);
+				double test = DangerFactor(self, dangerBullet, curMove,false);
 				if(test < danger)
 				{
 					danger = test;
@@ -601,7 +603,7 @@ abstract class ActualStrategy
 	}
 
 	int experimentTick = 0;
-	bool experimentStarted = false;
+	bool experimentStarted = false;	
 
 	bool Piece()
 	{
