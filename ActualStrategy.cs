@@ -385,7 +385,7 @@ abstract class ActualStrategy
 			bool can = true;
 			foreach (var p in bounds)
 			{
-				if (Menace(tank, bulletX, bulletY, bulletSpeedX, bulletSpeedY, bulletType, moveType))
+				if (DangerFactor(tank, bulletX, bulletY, bulletSpeedX, bulletSpeedY, bulletType, moveType) == inf)
 				{
 					can = false;
 					break;
@@ -397,7 +397,7 @@ abstract class ActualStrategy
 		return false;
 	}
 
-	static bool Menace(Tank self, double bulletX, double bulletY, double bulletSpeedX, double bulletSpeedY, ShellType bulletType, MoveType moveType)
+	static double DangerFactor(Tank self, double bulletX, double bulletY, double bulletSpeedX, double bulletSpeedY, ShellType bulletType, MoveType moveType)
 	{
 		double friction;
 		if (bulletType == ShellType.Regular)
@@ -408,6 +408,7 @@ abstract class ActualStrategy
 		MutableTank me = new MutableTank(self);
 		Point[] bounds = GetBounds(self);
 
+		double minDist = inf;
 		for (int tick = 0; tick < 100; tick++)
 		{
 			bulletSpeedX *= friction;
@@ -441,18 +442,22 @@ abstract class ActualStrategy
 				double collisionAngle = GetCollisionAngle(me, bulletX, bulletY, startX, startY);
 				if (bulletType == ShellType.Premium || double.IsNaN(collisionAngle)
 					|| collisionAngle < ricochetAngle + precision)
-					return true;
+					return inf;
 				else
-					return false;
+					return inf/2;
 /*#if !TEDDY_BEARS
 					preved
 					return false;
 #endif*/
 			}
 			if (TestCollision(bulletX, bulletY, tick, -10, -7, self) != null)
-				return false;
+				return 0;
+			foreach (var p in me.bounds)
+			{
+				minDist = Math.Min(minDist,Point.dist(p.x,p.y,bulletX,bulletY));
+			}
 		}
-		return false;
+		return Math.Max(0, 20 - minDist);
 	}
 
 	static bool Menace(Tank self, Shell bullet, MoveType moveType)
@@ -460,10 +465,22 @@ abstract class ActualStrategy
 		Point[] bounds = GetBounds(bullet);
 		foreach (var p in bounds)
 		{
-			if (Menace(self, p.x, p.y, bullet.SpeedX, bullet.SpeedY, bullet.Type, moveType))
+			if (DangerFactor(self, p.x, p.y, bullet.SpeedX, bullet.SpeedY, bullet.Type, moveType) == inf)
 				return true;
 		}
 		return false;
+	}
+
+	static double DangerFactor(Tank self, Shell bullet, MoveType moveType)
+	{
+		double res = 0;
+		Point[] bounds = GetBounds(bullet);
+		foreach (var p in bounds)
+		{
+			double test = DangerFactor(self, p.x, p.y, bullet.SpeedX, bullet.SpeedY, bullet.Type, moveType);
+			res = Math.Max(res, test);
+		}
+		return res;
 	}
 
 	public class BulletComparer : IComparer<Shell>
@@ -503,26 +520,44 @@ abstract class ActualStrategy
 		curMoves = curMoves.OrderBy(
 			m => Math.Abs(m.LeftTrackPower - move.LeftTrackPower)
 			   + Math.Abs(m.RightTrackPower - move.RightTrackPower)).ToList();
+		var bestMove = new MoveType(move.LeftTrackPower,move.RightTrackPower);
+		Shell dangerBullet = null;
+		double danger = 0;
 		foreach (var bullet in bullets)
 		{
-			if (Menace(self, bullet,new MoveType(move.LeftTrackPower,move.RightTrackPower)))
+			danger = DangerFactor(self, bullet,bestMove);
+			if(danger > 0)
 			{
-				foreach(var curMove in curMoves)
-					if (!Menace(self, bullet, curMove))
-					{
-						move.LeftTrackPower = curMove.LeftTrackPower;
-						move.RightTrackPower = curMove.RightTrackPower;
-						return;
-					}
+				dangerBullet = bullet;
+				break;
+			}
+		}
+		if(dangerBullet != null)
+		{
+			foreach(var curMove in curMoves)
+			{
+				double test = DangerFactor(self, dangerBullet, curMove);
+				if(test < danger)
+				{
+					danger = test;
+					bestMove = curMove;
+				}
+				if (danger == 0)
+					break;
+			}
+			if (danger == inf)
+			{
 				if (self.RemainingReloadingTime == 0)
 				{
-					if (ShootSaves(bullet))
+					if (ShootSaves(dangerBullet))
 					{
 						move.FireType = FireType.Regular;
 					}
 				}
 			}
 		}
+		move.LeftTrackPower = bestMove.LeftTrackPower;
+		move.RightTrackPower = bestMove.RightTrackPower;
 	}
 
 	private bool ShootSaves(Shell bullet)
@@ -602,7 +637,7 @@ abstract class ActualStrategy
 		return GetBounds(new MutableUnit(unit));
 	}
 
-	static Point[] GetBounds(MutableUnit unit)
+	public static Point[] GetBounds(MutableUnit unit)
 	{
 		double tx = unit.X;
 		double ty = unit.Y;
@@ -830,7 +865,24 @@ abstract class ActualStrategy
 
 	static bool Inside(Unit unit, double x, double y, double precision)
 	{
-		return Inside(new MutableUnit(unit), x, y, precision);
+		double w = unit.Width / 2 + precision;
+		double h = unit.Height / 2 + precision;
+
+		if (w < h)
+			throw new Exception();
+
+		if (x < unit.X - w || x > unit.X + w ||  // w must be greater than h
+		   y < unit.Y - w || y > unit.Y + w)
+			return false;
+
+		double d = unit.GetDistanceTo(x, y);
+		double angle = unit.GetAngleTo(x, y);
+		x = d * Math.Cos(angle);
+		y = d * Math.Sin(angle);
+		double lx = -w, rx = w;
+		double ly = -h, ry = h;
+		return x >= -w && x <= w &&
+			   y >= -h && y <= h;
 	}
 
 	static bool Inside(MutableUnit unit, double x, double y, double precision)

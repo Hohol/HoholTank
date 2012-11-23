@@ -45,8 +45,6 @@ class TwoTankskActualStrategy : ActualStrategy
 
 		TryShoot(victim, shootOnlyToVictim);
 
-		RotateForSafety();
-
 		/*if (world.Tick > runToCornerTime && AliveEnemyCnt() <= 1)
 		{
 			var tank = GetMostAngryEnemy();

@@ -80,6 +80,13 @@ class MutableUnit
 {
 	public double Angle, Y, X, Width, Height, SpeedX, SpeedY, AngularSpeed;
 	public MutableUnit() { }
+	/*Point[] bounds;
+	public Point[] GetBounds()
+	{
+		if (bounds == null)
+			bounds = ActualStrategy.GetBounds(this);
+		return bounds;
+	}*/
 	public MutableUnit(Unit unit)
 	{
 		SpeedX = unit.SpeedX;
@@ -98,7 +105,7 @@ class MutableUnit
 	}
 	public double GetAngleTo(double x, double y)
 	{
-		double r = Point.dist(X, Y, x, y);
+		//double r = Point.dist(X, Y, x, y);
 		double angle = Math.Atan2(y - Y, x - X);
 		angle -= Angle;
 		while (angle > 2 * Math.PI)
@@ -158,7 +165,7 @@ class MutableTank : MutableUnit
 {	
 	public double engine_rear_power_factor;
 	public int crew_health;
-	Point[] bounds;
+	public Point[] bounds;
 	public MutableTank(Tank tank) : base(tank)
 	{		
 		engine_rear_power_factor = tank.EngineRearPowerFactor;
