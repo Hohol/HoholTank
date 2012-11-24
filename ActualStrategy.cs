@@ -197,7 +197,7 @@ abstract class ActualStrategy
 			if (toy > 0)
 				TurnTo(self.X, self.Y+1);
 			else
-				TurnTo(self.X, self.Y+1);
+				TurnTo(self.X, self.Y-1);
 		}
 		else if (self.GetDistanceTo(x, y) <= 2 * targetDist && (angleDiff(a, 0) < Math.PI / 4 || angleDiff(a, Math.PI) < Math.PI / 4))
 		{

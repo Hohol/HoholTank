@@ -49,7 +49,7 @@ class ThreeTanksActualStrategy : ActualStrategy
 
 		bool bonusSaves = BonusSaves(self, bonus);
 
-		if (/*world.Tick > runToCornerTime && */victim != null && !HaveTimeToTurn(victim) && !bonusSaves)
+		if (victim != null && !HaveTimeToTurn(victim) && !bonusSaves)
 			TurnToMovingTank(victim, true);
 	}
 	void MoveBackwards()

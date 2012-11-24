@@ -47,7 +47,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 		public void Move(Tank self, World world, Move move)
 		{
 #if TEDDY_BEARS
-			/*const int startTick = 4290;
+			/*const int startTick = 622;
 			if(world.Tick < startTick)
 				return;/**/
 #endif
