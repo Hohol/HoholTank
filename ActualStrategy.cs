@@ -546,7 +546,7 @@ abstract class ActualStrategy
 					res.Cnt++;
 				dangerBullets.Add(bullet);
 			}
-			res.dangerFactor += ma;
+			res.dangerFactor = Math.Max(res.dangerFactor, ma);
 		}
 		return res;
 	}
@@ -774,7 +774,6 @@ abstract class ActualStrategy
 
 	static protected double GetCollisionAngle(MutableUnit tank, double bulletX, double bulletY, double startX, double startY)
 	{
-
 		double dx = bulletX - startX;
 		double dy = bulletY - startY;
 		double dd = Point.Dist(0, 0, dx, dy);
