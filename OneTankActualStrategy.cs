@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk.Model;
-using System.IO;
+﻿using Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk.Model;
 
 class OneTankActualStrategy : ActualStrategy
 {
@@ -11,7 +8,7 @@ class OneTankActualStrategy : ActualStrategy
 		bool forward;
 		Bonus bonus = GetBonus(out forward);
 		
-		Tank victim = null;
+		Tank victim;
 
 		bool shootOnlyToVictim = false;
 		cornerX = cornerY = -1;

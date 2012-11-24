@@ -258,11 +258,7 @@ abstract class ActualStrategy
 
 	protected int AliveTeammateCnt()
 	{
-		int r = 0;
-		foreach (var tank in world.Tanks)
-			if (tank.IsTeammate && !IsDead(tank))
-				r++;
-		return r;
+		return world.Tanks.Count(tank => tank.IsTeammate && !IsDead(tank));
 	}
 
 	protected void StayPerpendicular(Tank tank)
@@ -276,7 +272,7 @@ abstract class ActualStrategy
 		if (ObstacleBetween(self,tank,false))
 			return;
 		double angle = self.GetAngleTo(tank);
-		double allowedAngle = Math.PI / 4;
+		const double allowedAngle = Math.PI / 4;
 		if (angle > 0)
 		{
 			if (angle < Math.PI / 2 - allowedAngle)
@@ -313,7 +309,7 @@ abstract class ActualStrategy
 			{
 				if (tank.IsTeammate || IsDead(tank))
 					continue;
-				double test = 0;
+				double test;
 				if (ObstacleBetween(self, tank, true))
 					test = inf / 2;
 				else
@@ -333,10 +329,7 @@ abstract class ActualStrategy
 
 	protected Tank PickEnemy()
 	{
-		foreach (var tank in world.Tanks)
-			if (!IsDead(tank) && !tank.IsTeammate)
-				return tank;
-		return null;
+		return world.Tanks.FirstOrDefault(tank => !IsDead(tank) && !tank.IsTeammate);
 	}
 
 	protected interface IEnemyEvaluator
@@ -431,11 +424,13 @@ abstract class ActualStrategy
 			ar = moveTypes;
 		else
 		{
-			ar = new List<MoveType>();
-			ar.Add(new MoveType(1, 1));
-			ar.Add(new MoveType(-1, -1));
-			ar.Add(new MoveType(-1, 1));
-			ar.Add(new MoveType(1, -1));
+			ar = new List<MoveType>
+				{
+					new MoveType(1, 1),
+					new MoveType(-1, -1),
+					new MoveType(-1, 1),
+					new MoveType(1, -1)
+				};
 		}
 
 		foreach (var moveType in ar)
@@ -443,7 +438,7 @@ abstract class ActualStrategy
 			bool can = true;
 			foreach (var p in bounds)
 			{
-				if (DangerFactor(tank, bulletX, bulletY, bulletSpeedX, bulletSpeedY, bulletType, moveType,true) == inf)
+				if (DangerFactor(tank, p.x, p.y, bulletSpeedX, bulletSpeedY, bulletType, moveType,true) == inf)
 				{
 					can = false;
 					break;
@@ -464,9 +459,8 @@ abstract class ActualStrategy
 		else
 			friction = premiumBulletFriction;
 		double startX = bulletX, startY = bulletY;
-		MutableTank me = new MutableTank(self);
-		Point[] bounds = GetBounds(self);
-
+		var me = new MutableTank(self);
+		
 		double minDist = inf;
 		for (int tick = 0; tick < dangerFactorTestTickCnt; tick++)
 		{
@@ -501,7 +495,7 @@ abstract class ActualStrategy
 				return 0;
 			foreach (var p in me.GetBounds())
 			{
-				minDist = Math.Min(minDist,Point.dist(p.x,p.y,bulletX,bulletY));
+				minDist = Math.Min(minDist,Point.Dist(p.x,p.y,bulletX,bulletY));
 			}
 		}
 		return Math.Max(0, 20 - minDist);
@@ -518,7 +512,7 @@ abstract class ActualStrategy
 		return false;
 	}*/
 
-	static double DangerFactor(Tank self, Shell bullet, MoveType moveType, bool shouldTestCollision)
+	/*static double DangerFactor(Tank self, Shell bullet, MoveType moveType, bool shouldTestCollision)
 	{
 		double res = 0;
 		Point[] bounds = GetBounds(bullet);
@@ -528,7 +522,7 @@ abstract class ActualStrategy
 			res = Math.Max(res, test);
 		}
 		return res;
-	}
+	}*/
 
 	static DangerType DangerFactor2(Tank self, List<Shell> bullets, MoveType moveType, bool shouldTestCollision,
 		out List<Shell> dangerBullets)
@@ -547,9 +541,9 @@ abstract class ActualStrategy
 			if (ma == inf)
 			{
 				if (bullet.Type == ShellType.Premium)
-					res.cnt += 2;
+					res.Cnt += 2;
 				else
-					res.cnt++;
+					res.Cnt++;
 				dangerBullets.Add(bullet);
 			}
 			res.dangerFactor += ma;
@@ -582,18 +576,18 @@ abstract class ActualStrategy
 
 	class DangerType
 	{
-		public int cnt;
+		public int Cnt;
 		public double dangerFactor;
 		public static bool operator <(DangerType a, DangerType b)
 		{
-			if (a.cnt != b.cnt)
-				return a.cnt < b.cnt;
+			if (a.Cnt != b.Cnt)
+				return a.Cnt < b.Cnt;
 			return a.dangerFactor < b.dangerFactor;
 		}
 		public static bool operator >(DangerType a, DangerType b)
 		{
-			if (a.cnt != b.cnt)
-				return a.cnt > b.cnt;
+			if (a.Cnt != b.Cnt)
+				return a.Cnt > b.Cnt;
 			return a.dangerFactor > b.dangerFactor;
 		}
 	}
@@ -606,7 +600,7 @@ abstract class ActualStrategy
 
 	protected void AvoidBullets()
 	{
-		List<Shell> bullets = new List<Shell>();
+		var bullets = new List<Shell>();
 		foreach (var bullet in world.Shells)
 			if (MayBeDanger(bullet))
 				bullets.Add(bullet);
@@ -635,7 +629,7 @@ abstract class ActualStrategy
 				if (danger.dangerFactor == 0)
 					break;
 			}
-			if (danger.cnt > 0 && self.RemainingReloadingTime == 0)
+			if (danger.Cnt > 0 && self.RemainingReloadingTime == 0)
 			{
 				DangerFactor2(self, bullets, bestMove, false, out dangerBullets);
 				foreach(var bullet in dangerBullets)
@@ -666,8 +660,8 @@ abstract class ActualStrategy
 		return false;
 	}
 
-	int experimentTick = 0;
-	bool experimentStarted = false;	
+	int experimentTick;
+	bool experimentStarted;	
 
 	bool Piece()
 	{
@@ -709,14 +703,6 @@ abstract class ActualStrategy
 		}
 	}
 #endif
-
-	void printInfo()
-	{
-		foreach (var bullet in world.Shells)
-		{
-			//file.WriteLine(bullet.Id + " " + bullet.Type + " " + bullet.SpeedX + " " + bullet.SpeedY + " " + bullet.X + " " + bullet.Y);
-		}
-	}
 
 	static protected bool BonusSaves(Tank self, Bonus bonus)
 	{
@@ -763,7 +749,7 @@ abstract class ActualStrategy
 
 	protected double GetCollisionAngle(Tank tank, int resTick) //always regular bullet
 	{
-		double bulletSpeed = regularBulletStartSpeed;
+		//double bulletSpeed = regularBulletStartSpeed;
 		double angle = self.Angle + self.TurretRelativeAngle;
 		double cosa = Math.Cos(angle);
 		double sina = Math.Sin(angle);
@@ -780,10 +766,9 @@ abstract class ActualStrategy
 			dy *= regularBulletFriction;
 			bulletX += dx;
 			bulletY += dy;
-			bulletSpeed *= regularBulletFriction;
+			//bulletSpeed *= regularBulletFriction;
 		}
-
-		Point me = new Point(self.X, self.Y);
+		
 		return GetCollisionAngle(new MutableUnit(tank), bulletX, bulletY, startX, startY);
 	}
 
@@ -792,7 +777,7 @@ abstract class ActualStrategy
 
 		double dx = bulletX - startX;
 		double dy = bulletY - startY;
-		double dd = Point.dist(0, 0, dx, dy);
+		double dd = Point.Dist(0, 0, dx, dy);
 		dx /= dd;
 		dy /= dd;
 		bool found = false;
@@ -971,8 +956,6 @@ abstract class ActualStrategy
 		double angle = unit.GetAngleTo(x, y);
 		x = d * Math.Cos(angle);
 		y = d * Math.Sin(angle);
-		double lx = -w, rx = w;
-		double ly = -h, ry = h;
 		return x >= -w && x <= w &&
 			   y >= -h && y <= h;
 	}
@@ -993,8 +976,6 @@ abstract class ActualStrategy
 		double angle = unit.GetAngleTo(x, y);
 		x = d * Math.Cos(angle);
 		y = d * Math.Sin(angle);
-		double lx = -w, rx = w;
-		double ly = -h, ry = h;
 		return x >= -w && x <= w &&
 			   y >= -h && y <= h;
 	}
@@ -1005,7 +986,6 @@ abstract class ActualStrategy
 			MoveTo(10000, self.Y, true);
 		else
 			MoveTo(world.Width / 2, world.Height / 2, true);
-		return;
 	}
 
 	protected void ManageStuck()
@@ -1430,7 +1410,7 @@ abstract class ActualStrategy
 	{
 		double dx = unit.X - self.X;
 		double dy = unit.Y - self.Y;
-		double d = Point.dist(0, 0, dx, dy);
+		double d = Point.Dist(0, 0, dx, dy);
 		dx /= d;
 		dy /= d;
 		//double indent = self.Width * 1.5;
@@ -1464,11 +1444,12 @@ abstract class ActualStrategy
 
 	protected void MoveTo(Unit unit, bool forward)
 	{
-		if (unit is Bonus)
+		var bonus = unit as Bonus;
+		if (bonus != null)
 		{
-			if (self.GetDistanceTo(unit) < self.Width * 2)
+			if (self.GetDistanceTo(bonus) < self.Width * 2)
 			{
-				if(MoveToBonusSmart((Bonus)unit))
+				if(MoveToBonusSmart(bonus))
 					return;
 			}
 		}

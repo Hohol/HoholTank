@@ -66,7 +66,7 @@ class TankPhisicsConsts
   public double accRotate;
 	public static TankPhisicsConsts getPhisicsConsts()
 	{
-		TankPhisicsConsts ret = new TankPhisicsConsts();
+		var ret = new TankPhisicsConsts();
 		ret.resistMove = 0.95;
 		ret.resistRotate = 0.979487; 
 		ret.recoilRegular = 1.58333;
@@ -84,10 +84,9 @@ class MutableUnit
 	protected Point[] bounds;
 	public Point[] GetBounds()
 	{
-		if (bounds == null)
-			bounds = ActualStrategy.GetBounds(this);
-		return bounds;
+		return bounds ?? (bounds = ActualStrategy.GetBounds(this));
 	}
+
 	public MutableUnit(Unit unit)
 	{
 		SpeedX = unit.SpeedX;
@@ -102,7 +101,7 @@ class MutableUnit
 	}
 	public double GetDistanceTo(double x, double y)
 	{
-		return Point.dist(X, Y, x, y);
+		return Point.Dist(X, Y, x, y);
 	}
 	public double GetAngleTo(double x, double y)
 	{
@@ -119,8 +118,8 @@ class MutableUnit
 
 class MutableBullet : MutableUnit
 {
-	ShellType Type;
-	double friction;	
+	readonly ShellType Type;
+	readonly double friction;	
 	public MutableBullet(Shell bullet)
 		: base(bullet)
 	{
@@ -133,8 +132,8 @@ class MutableBullet : MutableUnit
 	public MutableBullet(Tank tank, ShellType type)
 	{
 		Angle = tank.Angle + tank.TurretRelativeAngle;
-		double cosa = Math.Cos(Angle);
-		double sina = Math.Sin(Angle);
+		var cosa = Math.Cos(Angle);
+		var sina = Math.Sin(Angle);
 		X = tank.X + tank.VirtualGunLength * cosa;
 		Y = tank.Y + tank.VirtualGunLength * sina;
 		Width = ActualStrategy.bulletWidth;
@@ -171,12 +170,12 @@ class MutableBullet : MutableUnit
 class MutableTank : MutableUnit
 {
 	TankPhisicsConsts phisics = TankPhisicsConsts.getPhisicsConsts();
-	public double engine_rear_power_factor;
-	public int crew_health;	
+	public double EngineRearPowerFactor;
+	public int CrewHealth;	
 	public MutableTank(Tank tank) : base(tank)
 	{		
-		engine_rear_power_factor = tank.EngineRearPowerFactor;
-		crew_health = tank.CrewHealth;
+		EngineRearPowerFactor = tank.EngineRearPowerFactor;
+		CrewHealth = tank.CrewHealth;
 		bounds = ActualStrategy.GetBounds(tank);
 	}
 	public void Move(MoveType moveType, World world)
@@ -185,10 +184,10 @@ class MutableTank : MutableUnit
 	  SpeedY *= phisics.resistMove;
 	  AngularSpeed *= phisics.resistRotate;
 
-	  double life = crew_health / 200.0 + 0.5;
+	  double life = CrewHealth / 200.0 + 0.5;
 
-	  double leftAcc = (moveType.LeftTrackPower >= 0 ? moveType.LeftTrackPower : moveType.LeftTrackPower * engine_rear_power_factor);
-	  double rightAcc = (moveType.RightTrackPower >= 0 ? moveType.RightTrackPower : moveType.RightTrackPower * engine_rear_power_factor);
+	  double leftAcc = (moveType.LeftTrackPower >= 0 ? moveType.LeftTrackPower : moveType.LeftTrackPower * EngineRearPowerFactor);
+	  double rightAcc = (moveType.RightTrackPower >= 0 ? moveType.RightTrackPower : moveType.RightTrackPower * EngineRearPowerFactor);
 
 	  double accMove= life * phisics.accMove * (leftAcc + rightAcc);         
 	  SpeedX += accMove * Math.Cos(Angle);
@@ -250,8 +249,8 @@ class Point
 	}
 	public Point(Unit unit)
 	{
-		this.x = unit.X;
-		this.y = unit.Y;
+		x = unit.X;
+		y = unit.Y;
 	}
 	static public Point operator -(Point a, Point b)
 	{
@@ -269,7 +268,7 @@ class Point
 	{
 		return wp(b - a, c - a);
 	}
-	static public double scalar(Point a, Point b)
+	static public double Scalar(Point a, Point b)
 	{
 		return a.x * b.x + a.y * b.y;
 	}
@@ -290,7 +289,7 @@ class Point
 			Util.Swap(ref l2, ref r2);
 		return Math.Max(l1, l2) <= Math.Min(r1, r2);
 	}
-	public static double dist(double x1, double y1, double x2, double y2)
+	public static double Dist(double x1, double y1, double x2, double y2)
 	{
 		double dx = x1 - x2;
 		double dy = y1 - y2;
@@ -302,7 +301,7 @@ class Util
 {
 	static public void Swap<T>(ref T a, ref T b)
 	{
-		T tmp = a;
+		var tmp = a;
 		a = b;
 		b = tmp;
 	}
