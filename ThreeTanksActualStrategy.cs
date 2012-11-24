@@ -27,14 +27,10 @@ class ThreeTanksActualStrategy : ActualStrategy
 #endif
 		bool shootOnlyToVictim = false;
 		cornerX = cornerY = -1;
-		if (bonus != null && (world.Tick > runToCornerTime || bonus.Type == BonusType.AmmoCrate))
-		{
+		if (bonus != null)
 			MoveToBonus(bonus, forward);
-		}
 		else
-		{
 			MoveBackwards();
-		}
 
 		Tank victim = GetVictim();//GetWithSmallestDistSum();
 		if (victim != null)
@@ -53,7 +49,7 @@ class ThreeTanksActualStrategy : ActualStrategy
 
 		bool bonusSaves = BonusSaves(self, bonus);
 
-		if (world.Tick > runToCornerTime && victim != null && !HaveTimeToTurn(victim) && !bonusSaves)
+		if (/*world.Tick > runToCornerTime && */victim != null && !HaveTimeToTurn(victim) && !bonusSaves)
 			TurnToMovingTank(victim, true);
 	}
 	void MoveBackwards()
