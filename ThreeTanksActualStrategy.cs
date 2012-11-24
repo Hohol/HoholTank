@@ -49,7 +49,7 @@ class ThreeTanksActualStrategy : ActualStrategy
 
 		bool bonusSaves = BonusSaves(self, bonus);
 
-		if (victim != null && !HaveTimeToTurn(victim) && !bonusSaves)
+		if ((world.Tick < 100 || world.Tick > runToCornerTime) && victim != null && !HaveTimeToTurn(victim) && !bonusSaves)
 			TurnToMovingTank(victim, true);
 	}
 	void MoveBackwards()
@@ -58,23 +58,24 @@ class ThreeTanksActualStrategy : ActualStrategy
 		bool up = self.Y < Math.Min(teammates[0].Y, teammates[1].Y);
 		bool down = self.Y > Math.Max(teammates[0].Y, teammates[1].Y);
 		double a = self.Width;
+		double b = self.Width;
 		if (x < world.Width / 2)
 		{
 			if (up)
-				MoveToVert(a, world.Height / 5);
-			else if (down)
-				MoveToVert(a, world.Height / 5 * 4);
-			else
+				MoveToVert(b, world.Height / 5);
+			else if (!down)
 				MoveToVert(a, world.Height / 2);
+			else
+				MoveToVert(b, world.Height / 5 * 4);
 		}
 		else
 		{
 			if (up)
-				MoveToVert(world.Width-a, world.Height / 5);
-			else if (down)
-				MoveToVert(world.Width - a, world.Height / 5 * 4);
-			else
+				MoveToVert(world.Width-b, world.Height / 5);
+			else if (!down)
 				MoveToVert(world.Width - a, world.Height / 2);
+			else
+				MoveToVert(world.Width - b, world.Height / 5 * 4);	
 		}
 	}
 	

@@ -428,8 +428,8 @@ abstract class ActualStrategy
 				{
 					new MoveType(1, 1),
 					new MoveType(-1, -1),
-					new MoveType(-1, 1),
-					new MoveType(1, -1)
+					new MoveType(-1, 0.75),
+					new MoveType(0.75, -1)
 				};
 		}
 
@@ -475,7 +475,7 @@ abstract class ActualStrategy
 			double precision = 0;
 			if (!self.IsTeammate)
 				precision = -1;
-			double anglePrecision = Math.PI/20;
+			double anglePrecision = Math.PI/10;
 			if (!self.IsTeammate)
 				anglePrecision *= -1;
 
@@ -657,6 +657,9 @@ abstract class ActualStrategy
 				return true;
 			a.Move();
 			b.Move();
+			foreach (var p in b.GetBounds())
+				if (TestCollision(p.x, p.y, 0,1,1,null) != null)
+					return false;
 		}
 		return false;
 	}
@@ -864,6 +867,7 @@ abstract class ActualStrategy
 		double victimY = tank.Y + tank.SpeedY * t;
 
 		double angleDiff = self.GetTurretAngleTo(victimX, victimY);
+		//double allowedAngle = Math.Atan2(tank.Height, self.GetDistanceTo(tank))/4;
 
 		if (angleDiff > 0)
 		{
