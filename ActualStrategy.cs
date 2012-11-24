@@ -453,6 +453,7 @@ abstract class ActualStrategy
 	static double DangerFactor(Tank self, double bulletX, double bulletY, double bulletSpeedX, double bulletSpeedY, 
 		ShellType bulletType, MoveType moveType, bool shouldTestCollision)
 	{
+		const double maxDanger = 20;
 		double friction;
 		if (bulletType == ShellType.Regular)
 			friction = regularBulletFriction;
@@ -485,7 +486,7 @@ abstract class ActualStrategy
 					|| collisionAngle < ricochetAngle + anglePrecision)
 					return inf;
 				else
-					return inf/2;
+					return maxDanger-5;
 /*#if !TEDDY_BEARS
 					preved
 					return false;
@@ -498,7 +499,7 @@ abstract class ActualStrategy
 				minDist = Math.Min(minDist,Point.Dist(p.x,p.y,bulletX,bulletY));
 			}
 		}
-		return Math.Max(0, 20 - minDist);
+		return Math.Max(0, maxDanger - minDist);
 	}
 
 	/*static bool Menace(Tank self, Shell bullet, MoveType moveType, bool shouldTestCollision)
@@ -747,7 +748,7 @@ abstract class ActualStrategy
 		return res;
 	}
 
-	protected double GetCollisionAngle(Tank tank, int resTick) //always regular bullet
+	/*protected double GetCollisionAngle(Tank tank, int resTick) //always regular bullet
 	{
 		//double bulletSpeed = regularBulletStartSpeed;
 		double angle = self.Angle + self.TurretRelativeAngle;
@@ -770,7 +771,7 @@ abstract class ActualStrategy
 		}
 		
 		return GetCollisionAngle(new MutableUnit(tank), bulletX, bulletY, startX, startY);
-	}
+	}*/
 
 	static protected double GetCollisionAngle(MutableUnit tank, double bulletX, double bulletY, double startX, double startY)
 	{
