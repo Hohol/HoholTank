@@ -25,13 +25,16 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			}			
 #endif
 
-			const int n = 5;
-			for (int i = n; i >= -n; i--)
-				for (int j = n; j >= -n; j--)
-					ActualStrategy.moveTypes.Add(new MoveType(i / (double)n, j / (double)n));
-			ActualStrategy.moveTypes = ActualStrategy.moveTypes.OrderBy(
-					m => 2-Math.Abs(m.LeftTrackPower+m.RightTrackPower)
-				).ToList();
+			if (tankIndex == 0)
+			{
+				const int n = 5;
+				for (int i = n; i >= -n; i--)
+					for (int j = n; j >= -n; j--)
+						ActualStrategy.moveTypes.Add(new MoveType(i/(double) n, j/(double) n));
+				ActualStrategy.moveTypes = ActualStrategy.moveTypes.OrderBy(
+					m => 2 - Math.Abs(m.LeftTrackPower + m.RightTrackPower)
+					).ToList();
+			}
 			if (teamSize == 1)
 				strat = new OneTankActualStrategy();
 			else if (teamSize == 2)
