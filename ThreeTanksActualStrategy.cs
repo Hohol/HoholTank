@@ -12,11 +12,11 @@ class ThreeTanksActualStrategy : ActualStrategy
 		myOtherSelf.historyX[world.Tick] = self.X;
 		myOtherSelf.historyY[world.Tick] = self.Y;
 
-		if(teammates.Count != 2)
+		/*if(teammates.Count != 2)
 		{
 			myOtherSelf.CommonMove(self, world, move);
 			return;
-		}
+		}*/
 
 		bool forward;
 		Bonus bonus = GetBonus(out forward);

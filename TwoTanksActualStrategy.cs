@@ -14,7 +14,7 @@ class TwoTankskActualStrategy : ActualStrategy
 		myOtherSelf.historyX[world.Tick] = self.X;
 		myOtherSelf.historyY[world.Tick] = self.Y;
 
-		if (teammates.Count != 1)
+		if (IsDead(teammates[0]))
 		{
 			myOtherSelf.CommonMove(self, world, move);
 			return;

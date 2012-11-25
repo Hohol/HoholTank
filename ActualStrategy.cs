@@ -68,7 +68,7 @@ abstract class ActualStrategy
 
 		teammates = new List<Tank>();
 		foreach (Tank tank in world.Tanks)
-			if (tank.IsTeammate && tank.Id != self.Id && !IsDead(tank))
+			if (tank.IsTeammate && tank.Id != self.Id)
 				teammates.Add(tank);
 
 		/////////////////
@@ -105,6 +105,8 @@ abstract class ActualStrategy
 		var forbidden = new HashSet<long>();
 		foreach (Tank tm in teammates)
 		{
+			if (IsDead(tm))
+				continue;
 			bool dummy;
 			Bonus b = GetBonus(tm, out dummy, null);
 			if (b != null && TeammateNeedsMore(b, tm))
