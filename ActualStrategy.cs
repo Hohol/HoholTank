@@ -199,7 +199,7 @@ abstract class ActualStrategy
 			else
 				TurnTo(self.X, self.Y-1);
 		}
-		else if (self.GetDistanceTo(x, y) <= 2 * targetDist && (angleDiff(a, 0) < Math.PI / 4 || angleDiff(a, Math.PI) < Math.PI / 4))
+		else if (self.GetDistanceTo(x, y) <= 2 * targetDist && (AngleDiff(a, 0) < Math.PI / 4 || AngleDiff(a, Math.PI) < Math.PI / 4))
 		{
 			if (toy > 0)
 				MoveTo(x, y + self.Width, true);
@@ -808,18 +808,18 @@ abstract class ActualStrategy
 		double va = Math.Atan2(me.y - bullet.y, me.x - bullet.x);
 
 		if (Point.Intersect(a, b, bullet, me))
-			return angleDiff(va, tank.Angle);
+			return AngleDiff(va, tank.Angle);
 		if (Point.Intersect(b, c, bullet, me))
-			return angleDiff(va, tank.Angle - Math.PI / 2);
+			return AngleDiff(va, tank.Angle - Math.PI / 2);
 		if (Point.Intersect(c, d, bullet, me))
-			return angleDiff(va, tank.Angle - Math.PI);
+			return AngleDiff(va, tank.Angle - Math.PI);
 		if (Point.Intersect(d, a, bullet, me))
-			return angleDiff(va, tank.Angle + Math.PI / 2);
+			return AngleDiff(va, tank.Angle + Math.PI / 2);
 		//throw new Exception();
 		return double.NaN;
 	}
 
-	static double angleDiff(double a, double b)
+	protected static double AngleDiff(double a, double b)
 	{
 		while (a < b - Math.PI)
 			a += 2 * Math.PI;
@@ -1563,7 +1563,7 @@ abstract class ActualStrategy
 	{
 		double ang1 = Math.Atan2(b.Y - a.Y, b.X - a.X);
 		double ang2 = Math.Atan2(bonus.Y - a.Y, bonus.X - a.X);
-		return angleDiff(ang1, ang2) <= Math.PI / 10;
+		return AngleDiff(ang1, ang2) <= Math.PI / 10;
 	}
 	protected virtual bool VeryBad(Tank self, Bonus bonus)
 	{

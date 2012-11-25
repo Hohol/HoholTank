@@ -85,6 +85,9 @@ class ThreeTanksActualStrategy : ActualStrategy
 		   bonus.Type == BonusType.RepairKit && self.HullDurability > self.HullMaxDurability - repairVal ||
 		   bonus.Type == BonusType.AmmoCrate && self.PremiumShellCount >= 4)
 			return true;
+		double angle = Math.Atan2(bonus.Y - self.Y, bonus.X - self.X);
+		if (AngleDiff(angle, 0) < Math.PI/4 || AngleDiff(angle, Math.PI) < Math.PI/4)
+			return true;
 		double x = (self.X + teammates[0].X + teammates[1].X) / 3;
 		double cx = world.Width / 2;
 		double cy = world.Height / 2;
