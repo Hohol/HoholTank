@@ -32,10 +32,6 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 			ActualStrategy.moveTypes = ActualStrategy.moveTypes.OrderBy(
 					m => 2-Math.Abs(m.LeftTrackPower+m.RightTrackPower)
 				).ToList();
-			ActualStrategy.smartAss = new HashSet<string>()
-			{
-				//  ^_^
-			};
 			if (teamSize == 1)
 				strat = new OneTankActualStrategy();
 			else if (teamSize == 2)

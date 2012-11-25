@@ -78,43 +78,62 @@ class ThreeTanksActualStrategy : ActualStrategy
 				MoveToVert(world.Width - b, world.Height / 5 * 4);	
 		}
 	}
-	
-	override protected bool VeryBad(Tank self, Bonus bonus)
+
+	bool WeAreUnderAttack()
 	{
-		if (bonus.Type == BonusType.Medikit && self.CrewHealth > self.CrewMaxHealth - medikitVal ||
-		   bonus.Type == BonusType.RepairKit && self.HullDurability > self.HullMaxDurability - repairVal ||
-		   bonus.Type == BonusType.AmmoCrate && self.PremiumShellCount >= 4)
-			return true;
-		double angle = Math.Atan2(bonus.Y - self.Y, bonus.X - self.X);
-		if (AngleDiff(angle, 0) < Math.PI/4 || AngleDiff(angle, Math.PI) < Math.PI/4)
+		if (enemies.Count != 0 && (enemies[0].PlayerName == "keika" || enemies[0].PlayerName == "Megabyte"))
 			return true;
 		double x = (self.X + teammates[0].X + teammates[1].X) / 3;
 		double cx = world.Width / 2;
-		double cy = world.Height / 2;
-		if (bonus.Type == BonusType.AmmoCrate)
+
+		int cnt = enemies.Count(tank => x < cx && tank.X < cx || x > cx && tank.X > cx);
+
+		return cnt >= 2 || AliveTeammateCnt() == 1;
+	}
+
+	protected override bool VeryBad(Tank self, Bonus bonus)
+	{
+		if (!WeAreUnderAttack())
 		{
-			double mi = inf, ma = 0;
-			foreach (var tank in world.Tanks)
+			if (bonus.Type == BonusType.Medikit && self.CrewHealth > self.CrewMaxHealth - medikitVal ||
+				bonus.Type == BonusType.RepairKit && self.HullDurability > self.HullMaxDurability - repairVal ||
+				bonus.Type == BonusType.AmmoCrate)
+				return true;
+			double angle = Math.Atan2(bonus.Y - self.Y, bonus.X - self.X);
+			if (AngleDiff(angle, 0) < Math.PI/4 || AngleDiff(angle, Math.PI) < Math.PI/4)
+				return true;
+			double x = (self.X + teammates[0].X + teammates[1].X)/3;
+			double cx = world.Width/2;
+			double cy = world.Height/2;
+			if (x > cx)
 			{
-				if (tank.IsTeammate || IsDead(tank))
-					continue;
-				mi = Math.Min(mi, tank.X);
-				ma = Math.Max(ma, tank.X);
+				//return bonus.X < world.Width / 2;
+				return bonus.X + bonus.Y < cx + cy || bonus.X - bonus.Y < cx - cy;
 			}
-			if (x > cx && ma < world.Width / 2)
-				return true;
-			if (x < cy && mi > world.Width / 2)
-				return true;
-		}
-		if (x > cx)
-		{
-			//return bonus.X < world.Width / 2;
-			return bonus.X + bonus.Y < cx + cy || bonus.X - bonus.Y < cx - cy;
+			else
+			{
+				//return bonus.X > world.Width / 2;
+				return bonus.X + bonus.Y > cx + cy || bonus.X - bonus.Y > cx - cy;
+			}
 		}
 		else
 		{
-			//return bonus.X > world.Width / 2;
-			return bonus.X + bonus.Y > cx + cy || bonus.X - bonus.Y > cx - cy;
+			if (bonus.Type == BonusType.Medikit && self.CrewHealth > self.CrewMaxHealth - 20 ||
+				bonus.Type == BonusType.RepairKit && self.HullDurability > self.HullMaxDurability - repairVal ||
+				bonus.Type == BonusType.AmmoCrate && self.PremiumShellCount >= 4)
+				return true;
+			
+			double x = (self.X + teammates[0].X + teammates[1].X) / 3;
+			double cx = world.Width / 2;
+			double cy = world.Height / 2;
+			if (x > cx)
+			{
+				return bonus.X < cx;
+			}
+			else
+			{
+				return bonus.X > cx;
+			}
 		}
 	}
 }

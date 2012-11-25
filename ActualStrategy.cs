@@ -43,7 +43,6 @@ abstract class ActualStrategy
 	static protected World world;
 	protected Move move;
 
-	public static HashSet<string> smartAss;
 	protected List<Tank> teammates, enemies;
 
 #if TEDDY_BEARS
@@ -422,18 +421,14 @@ abstract class ActualStrategy
 		Point[] bounds = GetBounds(bulletX, bulletY, angle, bulletWidth, bulletHeight);
 
 		List<MoveType> ar;
-		if (smartAss.Contains(tank.PlayerName))
-			ar = moveTypes;
-		else
-		{
-			ar = new List<MoveType>
-				{
-					new MoveType(1, 1),
-					new MoveType(-1, -1),
-					new MoveType(-1, 0.75),
-					new MoveType(0.75, -1)
-				};
-		}
+		
+		ar = new List<MoveType>
+			{
+				new MoveType(1, 1),
+				new MoveType(-1, -1),
+				new MoveType(-1, 0.75),
+				new MoveType(0.75, -1)
+			};
 
 		foreach (var moveType in ar)
 		{
@@ -503,29 +498,6 @@ abstract class ActualStrategy
 		}
 		return Math.Max(0, maxDanger - minDist);
 	}
-
-	/*static bool Menace(Tank self, Shell bullet, MoveType moveType, bool shouldTestCollision)
-	{
-		Point[] bounds = GetBounds(bullet);
-		foreach (var p in bounds)
-		{
-			if (DangerFactor(self, p.x, p.y, bullet.SpeedX, bullet.SpeedY, bullet.Type, moveType, shouldTestCollision) == inf)
-				return true;
-		}
-		return false;
-	}*/
-
-	/*static double DangerFactor(Tank self, Shell bullet, MoveType moveType, bool shouldTestCollision)
-	{
-		double res = 0;
-		Point[] bounds = GetBounds(bullet);
-		foreach (var p in bounds)
-		{
-			double test = DangerFactor(self, p.x, p.y, bullet.SpeedX, bullet.SpeedY, bullet.Type, moveType, shouldTestCollision);
-			res = Math.Max(res, test);
-		}
-		return res;
-	}*/
 
 	static DangerType DangerFactor2(Tank self, List<Shell> bullets, MoveType moveType, bool shouldTestCollision,
 		out List<Shell> dangerBullets)
