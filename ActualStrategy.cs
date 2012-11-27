@@ -27,7 +27,7 @@ abstract class ActualStrategy
 	bool stuckEscapeForward;
 	const double stuckDist = 10;
 	const int stuckAvoidTime = 35;
-	protected const int runToCornerTime = 300;
+	protected int runToCornerTime = 300;
 	protected MoveType prevMove;
 
 	//int dummy;
@@ -467,7 +467,7 @@ abstract class ActualStrategy
 			bulletX += bulletSpeedX;
 			bulletY += bulletSpeedY;
 
-			me.Move(moveType, world);			
+			me.Move(moveType, world);
 
 			double precision = 0;
 			if (!self.IsTeammate)
@@ -480,17 +480,28 @@ abstract class ActualStrategy
 			{
 				double collisionAngle = GetCollisionAngle(me, bulletX, bulletY, startX, startY);
 				if (bulletType == ShellType.Premium || double.IsNaN(collisionAngle)
-					|| collisionAngle < ricochetAngle + anglePrecision)
+				    || collisionAngle < ricochetAngle + anglePrecision)
 					return inf;
 				else
-					return maxDanger-5;
+					return maxDanger - 5;
 /*#if !TEDDY_BEARS
 					preved
 					return false;
 #endif*/
 			}
-			if (shouldTestCollision && TestCollision(bulletX, bulletY, tick, -10, -7, self) != null)
-				return 0;
+			if (shouldTestCollision)
+			{
+				if (self.IsTeammate)
+				{
+					if(TestCollision(bulletX, bulletY, tick, -10, -7, -10, self) != null)
+						return 0;
+				}
+				else
+				{
+					if (TestCollision(bulletX, bulletY, tick, -10, 1, -10, self) != null)
+						return 0;
+				}
+		}
 			foreach (var p in me.GetBounds())
 			{
 				minDist = Math.Min(minDist,Point.Dist(p.x,p.y,bulletX,bulletY));
@@ -632,7 +643,7 @@ abstract class ActualStrategy
 			a.Move();
 			b.Move();
 			foreach (var p in b.GetBounds())
-				if (TestCollision(p.x, p.y, 0,1,1,null) != null)
+				if (TestCollision(p.x, p.y, 0,1,1,1,null) != null)
 					return false;
 		}
 		return false;
@@ -1112,7 +1123,8 @@ abstract class ActualStrategy
 		}/**/
 	}	
 
-	static Unit TestCollision(Unit[] ar, double x, double y, int tick, double enemyPrecision, double obstaclePrecision, Unit ignoredUnit)
+	static Unit TestCollision(Unit[] ar, double x, double y, int tick, double enemyPrecision, double obstaclePrecision, double teammatePrecision,
+		Unit ignoredUnit)
 	{
 		foreach (var unit in ar)
 		{
@@ -1149,8 +1161,10 @@ abstract class ActualStrategy
 			}
 			else
 			{
-				//precision = 10;
-				precision = obstaclePrecision;
+				if (unit is Tank && !IsDead((Tank)unit) && ((Tank) unit).IsTeammate)
+					precision = teammatePrecision;
+				else
+					precision = obstaclePrecision;
 			}
 
 			if (Inside(unit, x - dx, y - dy, precision))
@@ -1159,15 +1173,15 @@ abstract class ActualStrategy
 		return null;
 	}
 
-	static Unit TestCollision(double x, double y, int tick, double enemyPrecision, double obstaclePrecision, Unit ignoredUnit)
+	static Unit TestCollision(double x, double y, int tick, double enemyPrecision, double obstaclePrecision, double teammatePrecision, Unit ignoredUnit)
 	{
-		Unit r = TestCollision(world.Bonuses, x, y, tick, enemyPrecision, obstaclePrecision, ignoredUnit);
+		Unit r = TestCollision(world.Bonuses, x, y, tick, enemyPrecision, obstaclePrecision,teammatePrecision, ignoredUnit);
 		if (r != null)
 			return r;
-		r = TestCollision(world.Tanks, x, y, tick, enemyPrecision, obstaclePrecision, ignoredUnit);
+		r = TestCollision(world.Tanks, x, y, tick, enemyPrecision, obstaclePrecision, teammatePrecision, ignoredUnit);
 		if (r != null)
 			return r;
-		r = TestCollision(world.Obstacles, x, y, tick, enemyPrecision, obstaclePrecision, ignoredUnit);
+		r = TestCollision(world.Obstacles, x, y, tick, enemyPrecision, obstaclePrecision, teammatePrecision, ignoredUnit);
 		return r;
 	}
 
@@ -1202,7 +1216,7 @@ abstract class ActualStrategy
 		{
 			foreach (var p in bounds)
 			{
-				Unit unit = TestCollision(p.x, p.y, tick, -1, 2, null);
+				Unit unit = TestCollision(p.x, p.y, tick, -10, 8, 9, null);
 				if (unit != null)
 				{
 					resTick = tick;
@@ -1296,6 +1310,7 @@ abstract class ActualStrategy
 			const double qsgAngle = Math.PI / 4;
 			double angle = self.GetAngleTo(x, y);
 
+			//kinda bug
 			if (world.Tick >= runToCornerTime && self.GetDistanceTo(x, y) >= 2 * self.Width && Math.Abs(self.GetAngleTo(x, y)) < qsgAngle &&
 				DistanceToBorder() > self.Width / 2)
 			//if(false)
@@ -1487,7 +1502,7 @@ abstract class ActualStrategy
 		double y = self.Y;
 		for (int i = 0; i <= stepCnt; i++)
 		{
-			Unit o = TestCollision(x, y, 0, 0, 0, null);
+			Unit o = TestCollision(x, y, 0, 0, 0, 0, null);
 			x += dx;
 			y += dy;
 

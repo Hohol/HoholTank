@@ -9,6 +9,7 @@ class ThreeTanksActualStrategy : ActualStrategy
 	TwoTankskActualStrategy myOtherSelf = new TwoTankskActualStrategy();
 	override public void Move(Tank self, World world, Move move)
 	{
+		runToCornerTime = 0;
 		myOtherSelf.historyX[world.Tick] = self.X;
 		myOtherSelf.historyY[world.Tick] = self.Y;
 
@@ -49,7 +50,7 @@ class ThreeTanksActualStrategy : ActualStrategy
 
 		bool bonusSaves = BonusSaves(self, bonus);
 
-		if ((world.Tick < 100 || world.Tick > runToCornerTime) && victim != null && !HaveTimeToTurn(victim) && !bonusSaves)
+		if ((world.Tick < 100 || world.Tick > 300) && victim != null && !HaveTimeToTurn(victim) && !bonusSaves)
 			TurnToMovingTank(victim, true);
 	}
 	void MoveBackwards()
@@ -81,7 +82,8 @@ class ThreeTanksActualStrategy : ActualStrategy
 
 	bool WeAreUnderAttack()
 	{
-		if (enemies.Count != 0 && (enemies[0].PlayerName == "keika" || enemies[0].PlayerName == "Megabyte"))
+		if (enemies.Count != 0 && (enemies[0].PlayerName == "keika" || enemies[0].PlayerName == "Megabyte"
+			|| enemies[0].PlayerName == "Mr.Smile"))
 			return true;
 		double x = (self.X + teammates[0].X + teammates[1].X) / 3;
 		double cx = world.Width / 2;
