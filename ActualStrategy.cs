@@ -213,6 +213,38 @@ abstract class ActualStrategy
 			MoveTo(x, y, forward);
 		}
 	}
+
+	protected void MoveToHor(double x, double y)
+	{
+		targetX = x;
+		targetY = y;
+
+		double tox = 10 * Math.Cos(self.Angle);
+		double toy = 10 * Math.Sin(self.Angle);
+
+		double a = Math.Atan2(self.Y - y, self.X - x);
+
+		if (self.GetDistanceTo(x, y) <= targetDist)
+		{
+			if (tox > 0)
+				TurnTo(self.X+1, self.Y);
+			else
+				TurnTo(self.X-1, self.Y);
+		}
+		else if (self.GetDistanceTo(x, y) <= 2 * targetDist && (AngleDiff(a, Math.PI/2) < Math.PI / 4 || AngleDiff(a, -Math.PI/2) < Math.PI / 4))
+		{
+			if (tox > 0)
+				MoveTo(x+self.Width, y, true);
+			else
+				MoveTo(x + self.Width, y, false);
+		}
+		else
+		{
+			bool forward = (tox * (x - self.X) + toy * (y - self.Y) > 0);
+			MoveTo(x, y, forward);
+		}
+	}
+
 	protected void MoveTo(double x, double y, double dx, double dy)
 	{
 		targetX = x;

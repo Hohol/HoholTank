@@ -25,7 +25,7 @@ class TwoTankskActualStrategy : ActualStrategy
 		Bonus bonus = GetBonus(out forward);
 
 #if TEDDY_BEARS
-		//bonus = null;
+		bonus = null;
 #endif
 		bool shootOnlyToVictim = false;
 		cornerX = cornerY = -1;
@@ -97,51 +97,53 @@ class TwoTankskActualStrategy : ActualStrategy
 		double secondX = self.Height*3+15;
 		double secondY = self.Width*1.5;
 		double vertD = self.Width / 2 + self.Height / 2;
+		double a = self.Width;
 		if (LeftMost())
 		{
 			if (self.Y < teammate.Y)
-				MoveToVert(firstX, vertD);
+				MoveToVert(a, vertD);
 			else
-				MoveToVert(firstX, world.Height -vertD);
+				MoveToVert(a, world.Height -vertD);
 		}
 		else if (RightMost())
 		{
 			if (self.Y < teammate.Y)
-				MoveToVert(world.Width - firstX, vertD);
+				MoveToVert(world.Width - a, vertD);
 			else
-				MoveToVert(world.Width - firstX, world.Height - vertD);
+				MoveToVert(world.Width - a, world.Height - vertD);
 		}
 		else
 		{
 			double x = (self.X + teammate.X) / 2;
 			double y = (self.Y + teammate.Y) / 2;
+			double bf = self.Width*2, bs = self.Width*4;
 			if (x < world.Width / 2 && y < world.Height / 2)
 			{
 				if (self.X < teammate.X)
-					MoveToVert(firstX, firstY);
+					MoveToHor(bf, a);
 				else
-					MoveToVert(secondX, secondY);
+					MoveToHor(bs, a);
 			}
 			else if (x < world.Width / 2 && y > world.Height / 2)
 			{
 				if (self.X < teammate.X)
-					MoveToVert(firstX, world.Height-firstY);
+					MoveToHor(bf, world.Height-a);
 				else
-					MoveToVert(secondX, world.Height-secondY);
+					MoveToHor(bs, world.Height-a);
 			}
 			else if (x > world.Width / 2 && y < world.Height / 2)
 			{
 				if (self.X > teammate.X)
-					MoveToVert(world.Width - firstX, firstY);
+					MoveToHor(world.Width - bf, a);
 				else
-					MoveToVert(world.Width - secondX, secondY);
+					MoveToHor(world.Width - bs, a);
 			}
 			else
 			{
 				if (self.X > teammate.X)
-					MoveToVert(world.Width - firstX, world.Height-firstY);
+					MoveToHor(world.Width - bf, world.Height-a);
 				else
-					MoveToVert(world.Width - secondX, world.Height-secondY);
+					MoveToHor(world.Width - bs, world.Height-a);
 			}
 		}
 	}
