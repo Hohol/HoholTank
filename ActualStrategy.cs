@@ -526,14 +526,14 @@ abstract class ActualStrategy
 				if (self.IsTeammate)
 				{
 					if(TestCollision(bulletX, bulletY, tick, -10, -7, -10, self) != null)
-						return 0;
+						return Math.Max(0, maxDanger - minDist);
 				}
 				else
 				{
 					if (TestCollision(bulletX, bulletY, tick, -10, 1, -10, self) != null)
-						return 0;
+						return Math.Max(0, maxDanger - minDist);
 				}
-		}
+			}
 			foreach (var p in me.GetBounds())
 			{
 				minDist = Math.Min(minDist,Point.Dist(p.x,p.y,bulletX,bulletY));
