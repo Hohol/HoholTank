@@ -25,7 +25,7 @@ class TwoTankskActualStrategy : ActualStrategy
 		Bonus bonus = GetBonus(out forward);
 
 #if TEDDY_BEARS
-		bonus = null;
+		//bonus = null;
 #endif
 		bool shootOnlyToVictim = false;
 		cornerX = cornerY = -1;
@@ -54,9 +54,7 @@ class TwoTankskActualStrategy : ActualStrategy
 		if (AliveEnemyCnt() == 1)
 		{
 			Tank enemy = PickEnemy();
-			double myDist = self.GetDistanceTo(enemy);
-			double tmDist = teammate.GetDistanceTo(enemy);
-			if (self.GetDistanceTo(enemy) > 4 * self.Width && !(myDist < tmDist - self.Width / 2))
+			if(MustRush(enemy))
 				MoveTo(enemy, true);
 		}
 
@@ -65,6 +63,41 @@ class TwoTankskActualStrategy : ActualStrategy
 		if (world.Tick > runToCornerTime && victim != null && !HaveTimeToTurn(victim) && !bonusSaves)
 			TurnToMovingTank(victim, true);
 	}	
+
+	int ShootToKill(Tank killer, Tank target)
+	{
+		int hd = target.HullDurability, ch = target.CrewHealth;
+		int ans = 0;
+		int ps = killer.PremiumShellCount;
+		for (int i = 0; i < ps; i++)
+		{
+			ans++;
+			hd -= 35;
+			ch -= 35;
+			if (hd <= 0 || ch <= 0)
+				return ans;
+		}
+		while (hd > 0 && ch > 0)
+		{
+			ans++;
+			hd -= 20;
+			ch -= 10;
+		}
+		return ans;
+	}
+
+	bool MustRush(Tank enemy)
+	{
+		if (Math.Min(ShootToKill(enemy, self), ShootToKill(enemy, teammate)) <
+		    Math.Max(ShootToKill(self, enemy), ShootToKill(teammate, enemy)))
+			return false;
+
+		double myDist = self.GetDistanceTo(enemy);
+		double tmDist = teammate.GetDistanceTo(enemy);
+		if (self.GetDistanceTo(enemy) > 4 * self.Width && !(myDist < tmDist - self.Width / 2))
+			return true;
+		return false;
+	}
 
 	void MoveToDead()
 	{
@@ -96,7 +129,7 @@ class TwoTankskActualStrategy : ActualStrategy
 		double firstY = self.Width*2.5; 
 		double secondX = self.Height*3+15;
 		double secondY = self.Width*1.5;
-		double vertD = self.Width / 2 + self.Height / 2;
+		double vertD = world.Height/4;
 		double a = self.Width;
 		if (LeftMost())
 		{

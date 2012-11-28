@@ -1507,7 +1507,7 @@ abstract class ActualStrategy
 		{
 			if (tank.IsTeammate || IsDead(tank))
 				continue;
-			double test = TimeToTurn(self, tank);
+			double test = TimeToTurn(self, tank)/2;
 			if (test < 0)
 				test = inf / 2;
 			if (ObstacleBetween(self, tank, true))
