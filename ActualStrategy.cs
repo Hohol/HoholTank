@@ -132,7 +132,7 @@ abstract class ActualStrategy
 		return Math.Min(a.CrewHealth, a.HullDurability) < Math.Min(b.CrewHealth, b.HullDurability);
 	}
 
-	protected void TryShoot(Unit victim, bool shootOnlyToVictim)
+	protected void TryShoot(Tank victim, bool shootOnlyToVictim)
 	{
 		if (self.RemainingReloadingTime > 0)
 			return;
@@ -1248,7 +1248,7 @@ abstract class ActualStrategy
 		{
 			foreach (var p in bounds)
 			{
-				Unit unit = TestCollision(p.x, p.y, tick, -10, 8, 9, null);
+				Unit unit = TestCollision(p.x, p.y, tick, -18, 8, 9, null);
 				if (unit != null)
 				{
 					resTick = tick;
