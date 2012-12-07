@@ -8,6 +8,10 @@ class OneTankActualStrategy : ActualStrategy
 		bool forward;
 		Bonus bonus = GetBonus(out forward);
 		
+#if TEDDY_BEARS
+		//bonus = null;
+#endif
+
 		Tank victim;
 
 		bool shootOnlyToVictim = false;

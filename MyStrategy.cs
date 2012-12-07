@@ -46,7 +46,7 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 		public void Move(Tank self, World world, Move move)
 		{
 #if TEDDY_BEARS
-			const int startTick = 3275;
+			/*const int startTick = 1217;
 			if(world.Tick < startTick)
 				return;/**/
 #endif
@@ -57,12 +57,12 @@ namespace Com.CodeGame.CodeTanks2012.DevKit.CSharpCgdk
 
 class TankPhisicsConsts
 {
-  public double resistMove;
-  public double resistRotate;
-  public double recoilRegular;
-  public double recoilPremium;
-  public double accMove;
-  public double accRotate;
+	public double resistMove;
+	public double resistRotate;
+	public double recoilRegular;
+	public double recoilPremium;
+	public double accMove;
+	public double accRotate;
 	public static TankPhisicsConsts getPhisicsConsts()
 	{
 		var ret = new TankPhisicsConsts();
@@ -225,6 +225,7 @@ class MutableTank : MutableUnit
 			  bounds[j].y += shiftY;
 		  }
 	  }
+	  moveType.NextMove();
 	}
 };
 
@@ -235,6 +236,31 @@ class MoveType
 	{
 		LeftTrackPower = l;
 		RightTrackPower = r;
+	}
+	virtual public void NextMove()
+	{
+
+	}
+};
+
+class MoveType2 : MoveType
+{
+	int tick, firstTypeTickCnt;
+	double secondLeftTrackPower, secondRightTrackPower;
+	public MoveType2(double l, double r, int t, double l2, double r2) : base(l,r)
+	{
+		firstTypeTickCnt = t;
+		secondLeftTrackPower = l2;
+		secondRightTrackPower = r2;
+	}
+	override public void NextMove()
+	{
+		tick++;
+		if (tick == firstTypeTickCnt)
+		{
+			LeftTrackPower = secondLeftTrackPower;
+			RightTrackPower = secondRightTrackPower;
+		}
 	}
 };
 

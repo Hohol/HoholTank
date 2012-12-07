@@ -82,8 +82,8 @@ class ThreeTanksActualStrategy : ActualStrategy
 
 	bool WeAreUnderAttack()
 	{
-		if (enemies.Count != 0 && (enemies[0].PlayerName == "keika" || enemies[0].PlayerName == "Megabyte"
-			|| enemies[0].PlayerName == "Mr.Smile"))
+		if (enemies.Count != 0 && (/*enemies[0].PlayerName == "keika" || enemies[0].PlayerName == "Megabyte"
+			||*/ enemies[0].PlayerName == "Mr.Smile"))
 			return true;
 		double x = (self.X + teammates[0].X + teammates[1].X) / 3;
 		double cx = world.Width / 2;

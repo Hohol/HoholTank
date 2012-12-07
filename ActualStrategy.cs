@@ -623,13 +623,22 @@ abstract class ActualStrategy
 			if (MayBeDanger(bullet))
 				bullets.Add(bullet);
 		//bullets.Sort(new BulletComparer(self));
-		var curMoves = new List<MoveType>(moveTypes);
+		List<MoveType> curMoves;// = new List<MoveType>();
+		curMoves = new List<MoveType>(moveTypes);
 		if(prevMove != null)
 			curMoves.Add(prevMove);
 
 		curMoves = curMoves.OrderBy(
 			m => Math.Abs(m.LeftTrackPower - move.LeftTrackPower)
-			   + Math.Abs(m.RightTrackPower - move.RightTrackPower)).ToList();
+			   + Math.Abs(m.RightTrackPower - move.RightTrackPower)).ToList();/**/
+		for (int i = 0; i < dangerFactorTestTickCnt - 1; i += dangerFactorTestTickCnt/10)
+		{
+			curMoves.Add(new MoveType2(-1, 0.75, i, 1, 1));
+			curMoves.Add(new MoveType2(-1, 0.75, i, -1, -1));
+			curMoves.Add(new MoveType2(0.75, -1, i, 1, 1));
+			curMoves.Add(new MoveType2(0.75, -1, i, -1, -1));
+		}/**/
+
 		var bestMove = new MoveType(move.LeftTrackPower,move.RightTrackPower);
 		//Shell dangerBullet = null;
 		List<Shell> dangerBullets;
@@ -1424,7 +1433,7 @@ abstract class ActualStrategy
 		{
 			if (tick > curMin)
 				return inf;
-			if (Collide(me, unit,-1))
+			if (Collide(me, unit,-10))
 				return tick;			
 			me.Move(moveType,world);
 		}
