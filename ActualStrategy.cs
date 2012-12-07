@@ -34,7 +34,7 @@ abstract class ActualStrategy
 
 	public double[] historyX = new double[10000];
 	public double[] historyY = new double[10000];
-	double stuckDetectedTick = -1;
+	int stuckDetectedTick = -1;
 	protected double cornerX, cornerY;
 	protected double targetX, targetY;
 	public static List<MoveType> moveTypes = new List<MoveType>();
@@ -335,39 +335,33 @@ abstract class ActualStrategy
 	}
 
 	protected Tank GetWeakest()
+	{
+		double mi = inf;
+		Tank res = null;
+		foreach (var tank in world.Tanks)
 		{
-			double mi = inf;
-			Tank res = null;
-			foreach (var tank in world.Tanks)
+			if (tank.IsTeammate || IsDead(tank))
+				continue;
+			double test;
+			if (ObstacleBetween(self, tank, true))
+				test = inf / 2;
+			else
+				test = Math.Min(tank.CrewHealth, tank.HullDurability);
+
+			//test = Math.Min(Math.Abs(tank.GetAngleTo(self)), angleDiff(tank.GetAngleTo(self), Math.PI));
+
+			if (test < mi)
 			{
-				if (tank.IsTeammate || IsDead(tank))
-					continue;
-				double test;
-				if (ObstacleBetween(self, tank, true))
-					test = inf / 2;
-				else
-					test = Math.Min(tank.CrewHealth, tank.HullDurability);
-
-				//test = Math.Min(Math.Abs(tank.GetAngleTo(self)), angleDiff(tank.GetAngleTo(self), Math.PI));
-
-				if (test < mi)
-				{
-					mi = test;
-					res = tank;
-				}
+				mi = test;
+				res = tank;
 			}
-			return res;
 		}
-	
+		return res;
+	}
 
 	protected Tank PickEnemy()
 	{
 		return world.Tanks.FirstOrDefault(tank => !IsDead(tank) && !tank.IsTeammate);
-	}
-
-	protected interface IEnemyEvaluator
-	{
-		double Evaluate(Tank tank);
 	}
 
 	protected void RotateForSafety()
@@ -429,8 +423,8 @@ abstract class ActualStrategy
 
 	protected static bool IsMovingBackward(Unit unit)
 	{
-		double tx = 100 * Math.Cos(unit.Angle);
-		double ty = 100 * Math.Sin(unit.Angle);
+		double tx = Math.Cos(unit.Angle);
+		double ty = Math.Sin(unit.Angle);
 		return tx * unit.SpeedX + ty * unit.SpeedY < 0;
 	}
 
@@ -452,9 +446,7 @@ abstract class ActualStrategy
 
 		Point[] bounds = GetBounds(bulletX, bulletY, angle, bulletWidth, bulletHeight);
 
-		List<MoveType> ar;
-		
-		ar = new List<MoveType>
+		var ar = new List<MoveType>
 			{
 				new MoveType(1, 1),
 				new MoveType(-1, -1),
@@ -516,10 +508,6 @@ abstract class ActualStrategy
 					return inf;
 				else
 					return maxDanger - 5;
-/*#if !TEDDY_BEARS
-					preved
-					return false;
-#endif*/
 			}
 			if (shouldTestCollision)
 			{
@@ -569,7 +557,7 @@ abstract class ActualStrategy
 		return res;
 	}
 
-	public class BulletComparer : IComparer<Shell>
+	/*public class BulletComparer : IComparer<Shell>
 	{
 		Tank tank;
 		public BulletComparer(Tank tank)
@@ -589,7 +577,7 @@ abstract class ActualStrategy
 				return -1;
 			return 1;
 		}
-	}
+	}*/
 
 
 	class DangerType
@@ -690,8 +678,6 @@ abstract class ActualStrategy
 		return false;
 	}
 
-	int experimentTick;
-	bool experimentStarted;	
 
 	bool Piece()
 	{
@@ -700,6 +686,8 @@ abstract class ActualStrategy
 	}
 
 #if TEDDY_BEARS
+	int experimentTick;
+	bool experimentStarted;	
 	protected void Experiment()
 	{
 		if (!experimentStarted)
@@ -854,7 +842,7 @@ abstract class ActualStrategy
 		return Math.Abs(a - b);
 	}
 
-	bool WillUsePremiumBullet(Tank tank)
+	bool WillUsePremiumBullet(Tank tank) //бред...
 	{
 		return self.PremiumShellCount > 0 && self.GetDistanceTo(tank) <= premiumShotDistance;
 	}
@@ -915,7 +903,7 @@ abstract class ActualStrategy
 		}
 	}
 
-	bool EasyMoney(Tank tank, int damage)
+	bool AlmostDead(Tank tank, int damage)
 	{
 		if (tank.HullDurability <= damage)
 			return true;
@@ -934,7 +922,7 @@ abstract class ActualStrategy
 		{
 			if (tank.IsTeammate || IsDead(tank))
 				continue;
-			if (!EasyMoney(tank, damage))
+			if (!AlmostDead(tank, damage))
 				continue;
 			if (self.GetDistanceTo(tank) > world.Height)
 				continue;
@@ -975,10 +963,12 @@ abstract class ActualStrategy
 		double w = unit.Width / 2 + precision;
 		double h = unit.Height / 2 + precision;
 
+#if TEDDY_BEARS
 		if (w < h)
 			throw new Exception();
+#endif
 
-		if (x < unit.X - w || x > unit.X + w ||  // w must be greater than h
+		if (x < unit.X - w || x > unit.X + w ||
 		   y < unit.Y - w || y > unit.Y + w)
 			return false;
 
@@ -995,10 +985,12 @@ abstract class ActualStrategy
 		double w = unit.Width / 2 + precision;
 		double h = unit.Height / 2 + precision;
 
+#if TEDDY_BEARS
 		if (w < h)
 			throw new Exception();
+#endif
 
-		if (x < unit.X - w || x > unit.X + w ||  // w must be greater than h
+		if (x < unit.X - w || x > unit.X + w ||
 		   y < unit.Y - w || y > unit.Y + w)
 			return false;
 
@@ -1354,7 +1346,6 @@ abstract class ActualStrategy
 			//kinda bug
 			if (world.Tick >= runToCornerTime && self.GetDistanceTo(x, y) >= 2 * self.Width && Math.Abs(self.GetAngleTo(x, y)) < qsgAngle &&
 				DistanceToBorder() > self.Width / 2)
-			//if(false)
 			{
 				double d = (-Math.Abs(angle) + Math.PI / 2) / (Math.PI / 2);
 				d = d * d * d * (d > 0 ? 1 : -1);

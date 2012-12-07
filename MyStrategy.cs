@@ -168,7 +168,7 @@ class MutableBullet : MutableUnit
 
 class MutableTank : MutableUnit
 {
-	TankPhisicsConsts phisics = TankPhisicsConsts.getPhisicsConsts();
+	readonly TankPhisicsConsts phisics = TankPhisicsConsts.getPhisicsConsts();
 	public double EngineRearPowerFactor;
 	public int CrewHealth;	
 	public MutableTank(Tank tank) : base(tank)

@@ -99,25 +99,13 @@ class TwoTankskActualStrategy : ActualStrategy
 		return false;
 	}
 
-	void MoveToDead()
-	{
-		foreach (Tank tank in world.Tanks)
-		{
-			if (IsDead(tank))
-			{
-				MoveTo(tank,true);
-				return;
-			}
-		}
-	}
-
-	bool LeftMost()
+	bool Leftmost()
 	{
 		var a = enemies.OrderBy(tank => tank.X).ToArray();
 		return a.Length != 0 && Math.Max(self.X, teammate.X) < a[0].X - 60;
 	}
 
-	bool RightMost()
+	bool Rightmost()
 	{
 		var a = enemies.OrderBy(tank => world.Width-tank.X).ToArray();
 		return a.Length != 0 && Math.Min(self.X, teammate.X) > a[0].X + 60;
@@ -131,14 +119,14 @@ class TwoTankskActualStrategy : ActualStrategy
 		double secondY = self.Width*1.5;
 		double vertD = world.Height/4;
 		double a = self.Width;
-		if (LeftMost())
+		if (Leftmost())
 		{
 			if (self.Y < teammate.Y)
 				MoveToVert(a, vertD);
 			else
 				MoveToVert(a, world.Height -vertD);
 		}
-		else if (RightMost())
+		else if (Rightmost())
 		{
 			if (self.Y < teammate.Y)
 				MoveToVert(world.Width - a, vertD);
